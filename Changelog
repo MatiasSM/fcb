@@ -1,0 +1,34 @@
+Release 0.3.0:
+    * Completely rewrite previous functionality to get more maintainable code
+    * Though a minor version change, this version is INCOMPATIBLE (sorry about that)
+
+Release 0.2.0:
+    files_cloud_backuper:
+        * Added capability to define maximum amount of bytes to upload in a day
+        * Added capability to define size limits with units (to improve configuration readability)
+        * Some bug fixes
+        
+    upload_checker:
+        * Checks files registered in db were correctly uploaded
+    
+    db_to_latest_version:
+        * Alters the local database to the latest version (to be able to use it with current version of the programs)
+        
+    db_cleanup:
+        * purges local database to remove information about files that weren't successfully uploaded (according to upload_checker)
+
+Release 0.1.1:
+    files_cloud_backuper:
+        * Fixed code so it can run in Windows
+
+Release 0.1.0:
+    files_cloud_backuper:
+        * Sending from and to mail account
+        * Configurable encryption of files
+        * Maximum backup file size configuration
+    create_database:
+        * Create empty database to use with files_cloud_backuper
+    decipher_file:
+        * Single and batch file decryption modes
+        * Automatic file decryption using information of the files_cloud_backuper database (batch mode)
+    

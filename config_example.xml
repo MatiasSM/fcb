@@ -1,0 +1,33 @@
+<configuration>
+	<performance>
+        <cipher_threads>3</cipher_threads>
+        <sender_threads>1</sender_threads>	
+        <max_pending_for_processing>10</max_pending_for_processing>
+	</performance>
+	
+	<stored_files>
+	   <max_upload_per_day>500M</max_upload_per_day>
+	   <max_size>10M</max_size>
+	   <should_encrypt>1</should_encrypt>
+	   <should_check_already_sent>1</should_check_already_sent>
+	   <delete_temp_files>1</delete_temp_files>
+	</stored_files>
+
+	<mail_sender>
+	   <account>	       
+	       <src>
+	           <mail>my_mail@some_mail_srv.com</mail>
+		       <user>my_mail_usr</user>
+		       <pass>my_mail_pass</pass>
+		       <server>smtp.mail.some_mail_srv.com</server>
+		       <use_ssl>1</use_ssl>
+	       </src>
+	       <subject_prefix>FCB uploaded</subject_prefix>
+	       <dst_mail>my_cloud_storage@some_mail_srv.com</dst_mail>
+	       <retries>5</retries>
+	       <time_between_retries>5</time_between_retries>
+	   </account>	    
+	</mail_sender>
+
+	<sent_files_log>files_sent.log</sent_files_log>
+</configuration>

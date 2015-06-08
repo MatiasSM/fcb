@@ -1,0 +1,7 @@
+<configuration>
+	<mail_account>
+       <user>my_mail_usr</user>
+       <pass>my_mail_pass</pass>
+       <pop_server>smtp.mail.some_mail_srv.com</pop_server>
+	</mail_account>
+</configuration>
