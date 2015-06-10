@@ -16,7 +16,7 @@ from sqlalchemy.sql.expression import select
 from database.helpers import get_session
 from database.helpers import get_db_version
 from database.schema import FilesContainer, CheckerState, Destination, FilesDestinations
-from processing.filesystem.File_Info import File_Info
+from processing.filesystem.FileInfo import FileInfo
 from utils.log_helper import get_logger_module
 
 # noinspection PyUnresolvedReferences
@@ -203,7 +203,7 @@ class Checker(object):
             if files_container:
                 sha1_in_db = files_container.sha1
                 msg_info.files_containers_id = files_container.id
-                tmp_file = File_Info(os.path.join(tempfile.gettempdir(), "downloaded.tmp"))
+                tmp_file = FileInfo(os.path.join(tempfile.gettempdir(), "downloaded.tmp"))
                 fp = open(tmp_file.path, 'wb')
                 fp.write(part.get_payload(decode=1))
                 fp.flush()

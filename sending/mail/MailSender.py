@@ -1,37 +1,35 @@
-import smtplib, os
+import smtplib
+import os
+from email import Encoders
+import time
+
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
-from email import Encoders
-from utils.log_helper import get_logger_module
-import time
-from random import randint
-from time import sleep
+from framework.PipelineTask import PipelineTask
 
 
-class MailSender(object):
+class MailSender(PipelineTask):
     def __init__(self, mail_conf):
-        self.log = get_logger_module(self.__class__.__name__)
+        PipelineTask.__init__(self)
         self._mail_conf = mail_conf
 
-    def send(self, block):
-        """Expects Compressor Block like objects"""
-        if self.send_mail(subject=block.ciphered_file_info.basename,
-                          text=self._gen_mail_content(block),
-                          files=[block.ciphered_file_info.path]):
+    # override from PipelineTask
+    def process_data(self, block):
+        """
+        Note: Expects Compressor Block like objects
+        """
+        if self._send_mail(subject=block.ciphered_file_info.basename,
+                           text=self._gen_mail_content(block),
+                           files=[block.ciphered_file_info.path]):
             if not hasattr(block, 'send_destinations'):
                 block.send_destinations = []
             block.send_destinations.extend(self._mail_conf.dst_mail)
-            return True
-        return False
-
-    def close(self):
-        pass
 
     @staticmethod
     def _gen_file_info(file_info):
-        return "File: %s (sha1: %s)\n" % (file_info.basename, file_info.sha1)
+        return "File: {} (sha1: {})\n".format(file_info.basename, file_info.sha1)
 
     def _gen_mail_content(self, block):
         encrypted = ""
@@ -45,13 +43,13 @@ class MailSender(object):
                           encrypted
                           ))
 
-    def send_mail(self, subject, text, files):
+    def _send_mail(self, subject, text, files):
         assert type(files) == list
 
         send_from = self._mail_conf.src_mail
         send_to = self._mail_conf.dst_mail
 
-        self.log.debug("Sending to '%s' files '%s'" % (str(send_to), str(files)))
+        self.log.debug("Sending to '%s' files '%s'", str(send_to), str(files))
         msg = MIMEMultipart()
         msg['From'] = send_from
         msg['To'] = COMMASPACE.join(send_to)
@@ -80,17 +78,14 @@ class MailSender(object):
                 smtp.sendmail(send_from, send_to, msg.as_string())
                 sent = True
             except Exception, e:
-                self.log.error("Failed to send '%s' to '%s' try %d of %d. %sError: %s"
-                               % (str(files), str(send_to), try_num + 1, self._mail_conf.retries + 1,
-                                  "Will retry in %d seconds. " % self._mail_conf.time_between_retries
-                                  if try_num < self._mail_conf.retries else "",
-                                  str(e)))
+                self.log.error("Failed to send '%s' to '%s' try %d of %d. %sError: %s",
+                               str(files), str(send_to), try_num + 1, self._mail_conf.retries + 1,
+                               ("Will retry in %d seconds. " % self._mail_conf.time_between_retries
+                                if try_num < self._mail_conf.retries else ""),
+                               str(e))
                 time.sleep(self._mail_conf.time_between_retries)
             if smtp:
                 smtp.close()
             if sent:
                 break
-
-        sleep(randint(10, 60))  # TODO borrar
-
         return sent

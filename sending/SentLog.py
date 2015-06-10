@@ -1,29 +1,33 @@
 from sqlalchemy.orm.exc import NoResultFound
+
 from database.helpers import get_session
 from database.schema import FilesContainer, FilesDestinations, Destination, UploadedFile, FileFragment, \
     FilesInContainers
+from framework.PipelineTask import PipelineTask
 
 
-class SentLog:
-    def __init__(self, sent_log, out_queue=None):
+class SentLog(PipelineTask):
+    def __init__(self, sent_log):
+        PipelineTask.__init__(self)
         self._session = None
         self._sent_log_file = open(sent_log, 'a')
-        self._out_queue = out_queue
 
-    def log(self, block):
+    # override from PipelineTask
+    def process_data(self, block):
         """expects Block from Compressor"""
         self._log_in_db(block)
         self._log_in_sent_log(block)
-        if self._out_queue:
-            self._out_queue.put(block)
+        return block
 
-    def close(self):
+    # override from PipelineTask
+    def on_stopped(self):
         if self._sent_log_file:
             self._sent_log_file.close()
         if self._session:
             self._session.commit()
             self._session.close()
 
+    # --- low visibility methods ------------------------------
     def _get_uploaded_file(self, file_info, fragment_count=0):
         """
         :param file_info: contains file information to save or query
@@ -63,7 +67,7 @@ class SentLog:
         for destination in block.send_destinations if hasattr(block, 'send_destinations') else []:
             file_destination = FilesDestinations()
             file_destination.destination = Destination.get_or_add(self._session, destination)
-            file_destination.file_containers_id = file_container.id  # FIXME according to the example, this shouldn't be needed
+            file_destination.file_containers_id = file_container.id  # FIXME according to the example in SQLAlchemy, this shouldn't be needed
             file_container.files_destinations.append(file_destination)
 
         # save/update each file in the container

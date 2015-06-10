@@ -1,27 +1,30 @@
-'''
+"""
 Based on code available in http://eli.thegreenplace.net/2010/06/25/aes-encryption-of-files-in-python-with-pycrypto/
-'''
-import os, string, random, struct
+"""
+import os
+import string
+import random
+import struct
 from Crypto.Cipher import AES
-from processing.filesystem.File_Info import File_Info
-from utils.log_helper import get_logger_module
 
-class Cipher(object):
-    def __init__(self, out_queue):
-        self.log = get_logger_module(self.__class__.__name__)
-        self._out_queue = out_queue
+from framework.PipelineTask import PipelineTask
+from processing.filesystem.FileInfo import FileInfo
 
-    def encrypt(self, block):
-        '''Expects Compressor Block like objects'''
-        
+
+class Cipher(PipelineTask):
+    # override from PipelineTask
+    def process_data(self, block):
+        """
+        Expects Compressor Block like objects
+        """
         block.cipher_key = Cipher.gen_key(32)
-        block.ciphered_file_info = File_Info(block.processed_data_file_info.path + ".enc")
-        self.log.debug("Encrypting file '%s' with key '%s' to file '%s'" % 
-                       (block.processed_data_file_info.path, block.cipher_key, block.ciphered_file_info.path))
+        block.ciphered_file_info = FileInfo(block.processed_data_file_info.path + ".enc")
+        self.log.debug("Encrypting file '%s' with key '%s' to file '%s'",
+                       block.processed_data_file_info.path, block.cipher_key, block.ciphered_file_info.path)
         Cipher.encrypt_file(key=block.cipher_key, 
                             in_filename=block.processed_data_file_info.path, 
                             out_filename=block.ciphered_file_info.path)
-        self._out_queue.put(block)
+        return block
 
     @classmethod
     def gen_key(cls, size):

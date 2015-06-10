@@ -1,19 +1,21 @@
-
 import tarfile
 import tempfile
 from datetime import datetime
-from processing.filesystem.File_Info import File_Info
-from utils.log_helper import get_logger_module
 import os
-    
-class Compressor(object):
-    ####### INNER TYPES ################################################3
-    class Block:        
+
+from framework.PipelineTask import PipelineTask
+from processing.filesystem.FileInfo import FileInfo
+from utils.log_helper import get_logger_module
+
+
+class Compressor(PipelineTask):
+    # --- INNER TYPES ----------------------------------------------
+    class Block:
         class DontFitError(Exception):
             def __str__(self):
                 return "Value doesn't fit"
-        
-        #######################################################
+
+        # ----------------------------------------------------------
         def __init__(self, max_size):
             """
                 If max_size is 0, there is no restriction in the size of the block
@@ -23,105 +25,110 @@ class Compressor(object):
             self._content_size = 0
             self._content_file_infos = []
             self._fragmented_files = []
-            self._processed_data_file_info = None        
-        
+            self._processed_data_file_info = None
+
         @property
         def fragmented_files(self):
             return self._fragmented_files
-        
+
         @property
         def processed_data_file_info(self):
             return self._processed_data_file_info
-        
+
         @property
         def content_file_infos(self):
             return self._content_file_infos
-        
+
         def remaining_bytes(self):
             return 0 if self._max_size == 0 else self._max_size - self._content_size
-        
-        def check_content_fit(self,file_info):            
+
+        def check_content_fit(self, file_info):
             return self._max_size == 0 or \
                    file_info.size + self._content_size <= self._max_size
-        
+
         def add(self, file_info):
             file_size = file_info.size
             new_content_size = self._content_size + file_size
             if new_content_size > self._max_size:
                 raise self.DontFitError()
-            
+
             self._content_size = new_content_size
             self._content_file_infos.append(file_info)
-            
+
         def finish(self):
             of = tempfile.NamedTemporaryFile(
-                                     suffix=".tar.bz2",
-                                     prefix="_".join(("archive",datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f'),"")),
-                                     delete=False)
+                suffix=".tar.bz2",
+                prefix="_".join(("archive", datetime.now().strftime('%Y-%m-%d_%H-%M-%S.%f'), "")),
+                delete=False)
             output_filename = of.name
             of.close()
             with tarfile.open(output_filename, "w:bz2") as tar:
                 for file_info in self._content_file_infos:
                     tar.add(file_info.path, arcname=file_info.basename)
                 tar.close()
-            self._processed_data_file_info = File_Info(output_filename)
-            self.log.debug("Created %s",output_filename)
-    #####################################################################################################        
-            
-    def __init__(self, settings, output_queue, bytes_uploaded_today):
-        self.log = get_logger_module(self.__class__.__name__)
-        self._out_queue = output_queue
+            self._processed_data_file_info = FileInfo(output_filename)
+            self.log.debug("Created %s", output_filename)
+
+    # --------------------------------------------------------------------------------------
+
+    def __init__(self, settings, bytes_uploaded_today):
+        PipelineTask.__init__(self)
         self._settings = settings
         self._current_block = None
         self._bytes_uploaded_today = bytes_uploaded_today
-        
-    def process_file(self, file_info):
-        #note we check against the file (despite it will be compressed, and possibly require less space) so we 
-        #can avoid processing it if it wouldn't fit
-        if (self._settings.max_upload_per_day_in_bytes != 0 and 
-            file_info.size > self._settings.max_upload_per_day_in_bytes - self._bytes_uploaded_today):
-            
+
+    # override from PipelineTask
+    def process_data(self, file_info):
+        # note we check against the file (despite it will be compressed, and possibly require less space) so we
+        # can avoid processing it if it wouldn't fit
+        if (self._settings.max_upload_per_day_in_bytes != 0
+           and file_info.size > self._settings.max_upload_per_day_in_bytes - self._bytes_uploaded_today):
             self.log.debug("Won't try to fit file '%s' into block because adding it's size (%d)" +
                            " to the current sent amount (%d) would exceed the maximum for the day (%d)",
-                           file_info.path, file_info.size, self._bytes_uploaded_today, 
+                           file_info.path, file_info.size, self._bytes_uploaded_today,
                            self._settings.max_upload_per_day_in_bytes)
-            return #ignore file
-            
+            return # ignore file
+
         file_parts = [file_info]
-        self._add_block_if_none()            
-                                
+        self._add_block_if_none()
+
         if not self._current_block.check_content_fit(file_info):
             if not self._settings.should_split_small_files and self._is_small_file(file_info):
-                #if the file is an small file and shouldn't be split, we close the current block and open a new one
-                #(where the small file will fit)
+                # if the file is an small file and shouldn't be split, we close the current block and open a new one
+                # (where the small file will fit)
                 self._finish_current_block(True)
                 self.log.debug("Need to finish current block because file '%s' doesn't fit", file_info.path)
-            else:  
-                self.log.debug("File '%s' doesn't fit in the block, will need to fragment it", file_info.path)              
-                #split the file so the first part fits in the current block and the remaining in new blocks
-                file_parts = Compressor._split_file(file_info, self._current_block.remaining_bytes(), 
-                                                           self._settings.max_size_in_bytes,
-                                                           self._settings.tmp_file_parts_basepath)
-                self.log.debug("File '%s' fragmented in %d parts to fit in blocks" % (file_info.path, len(file_parts)))           
-        
+            else:
+                self.log.debug("File '%s' doesn't fit in the block, will need to fragment it", file_info.path)
+                # split the file so the first part fits in the current block and the remaining in new blocks
+                file_parts = Compressor._split_file(file_info, self._current_block.remaining_bytes(),
+                                                    self._settings.max_size_in_bytes,
+                                                    self._settings.tmp_file_parts_basepath)
+                self.log.debug("File '%s' fragmented in %d parts to fit in blocks" % (file_info.path, len(file_parts)))
+
         fragments_count = len(file_parts)
         fragment_num = 0
-        class Fragment_Info:
+
+        class FragmentInfo:
             def __init__(self, file_info, fragment_num, fragments_count):
                 self.file_info = file_info
                 self.fragment_num = fragment_num
-                self.fragments_count = fragments_count            
-            
+                self.fragments_count = fragments_count
+
         for part_file_info in file_parts:
             self._add_block_if_none()
-            if fragments_count > 1: #is fragmented
+            if fragments_count > 1:  # is fragmented
                 fragment_num += 1
-                part_file_info.fragment_info = Fragment_Info(file_info, fragment_num, fragments_count)
-                self._current_block.fragmented_files.append(part_file_info.fragment_info)                
+                part_file_info.fragment_info = FragmentInfo(file_info, fragment_num, fragments_count)
+                self._current_block.fragmented_files.append(part_file_info.fragment_info)
             self._current_block.add(part_file_info)
             if self._current_block.remaining_bytes() == 0:
                 self._finish_current_block()
-        
+
+    # override from PipelineTask
+    def on_stopped(self):
+        self.flush()
+
     def flush(self):
         """
             Finish processing any partly created block of information
@@ -129,7 +136,7 @@ class Compressor(object):
         """
         if self._current_block:
             self._finish_current_block()
-        
+
     @classmethod
     def _split_file(cls, file_info, first_chunk_size, other_chunks_size, parts_basedir):
         result = []
@@ -138,29 +145,28 @@ class Compressor(object):
             chunk = f.read(first_chunk_size)
             path_basename = file_info.basename
             while chunk:
-                out_filename = "".join((os.path.join(parts_basedir, path_basename) ,"_part_%03d" % chunk_number))
+                out_filename = "".join((os.path.join(parts_basedir, path_basename), "_part_%03d" % chunk_number))
                 with open(out_filename, "wb") as outf:
                     outf.write(chunk)
                     outf.close()
-                    result.append(File_Info(out_filename))
+                    result.append(FileInfo(out_filename))
                 chunk_number += 1
                 chunk = f.read(other_chunks_size)
             f.close()
-        return result        
-    
+        return result
+
     def _finish_current_block(self, should_add_new_block=False):
         self._current_block.finish()
         self._bytes_uploaded_today += self._current_block.processed_data_file_info.size
         self.log.debug("Total (pending to be) uploaded today %d bytes", self._bytes_uploaded_today)
-        self._out_queue.put(self._current_block)
+        self.new_output(self._current_block)
         self._current_block = None
         if should_add_new_block:
-            self.Block(self._settings.max_size_in_bytes)    
-    
+            self.Block(self._settings.max_size_in_bytes)
+
     def _is_small_file(self, file_info):
-        return self._settings.max_size_in_bytes == 0 or \
-               self._settings.max_size_in_bytes >= file_info.size
-    
+        return self._settings.max_size_in_bytes == 0 or self._settings.max_size_in_bytes >= file_info.size
+
     def _add_block_if_none(self):
         if not self._current_block:
             self._current_block = self.Block(self._settings.max_size_in_bytes)
