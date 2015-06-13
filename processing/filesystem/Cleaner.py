@@ -19,6 +19,3 @@ class Cleaner(PipelineTask):
                 if hasattr(content_file_info, 'fragment_info'):
                     os.remove(content_file_info.path)
                     self.log.debug("REMOVE: %s", content_file_info.path)
-        self.log.info("Sent file %s containing files: %s",
-                      block.processed_data_file_info.basename,
-                      str([file_info.path for file_info in block.content_file_infos]))

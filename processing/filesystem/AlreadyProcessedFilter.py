@@ -12,7 +12,6 @@ class AlreadyProcessedFilter(PipelineTask):
     # override from PipelineTask
     def process_data(self, file_info):
         """expects Path_Info"""
-
         if self._is_already_processed(file_info):
             self.log.debug("Content file already processed '%s'", str(file_info))
         else:
@@ -38,6 +37,7 @@ class AlreadyProcessedFilter(PipelineTask):
                 .filter(UploadedFile.sha1 == file_info.sha1) \
                 .order_by(UploadedFile.upload_date.desc()).one()
 
+            self.log.debug("Found uploaded file by hash: {}".format(uploaded_file))
             # get the uploaded date in local time (FIXME really ugly code)
             date_string = uploaded_file.upload_date.replace(tzinfo=tz.gettz('GMT')).astimezone(tz.tzlocal()).isoformat()
 
@@ -53,4 +53,5 @@ class AlreadyProcessedFilter(PipelineTask):
                           file_info.path, date_string, uploaded_file.file_name, file_info.sha1)
             return True
         except NoResultFound:
+            self.log.debug("No file found for file info: {}".format(file_info))
             return False

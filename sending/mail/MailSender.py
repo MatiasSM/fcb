@@ -26,6 +26,8 @@ class MailSender(PipelineTask):
             if not hasattr(block, 'send_destinations'):
                 block.send_destinations = []
             block.send_destinations.extend(self._mail_conf.dst_mail)
+            return block
+        return None
 
     @staticmethod
     def _gen_file_info(file_info):

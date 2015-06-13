@@ -17,6 +17,9 @@ class SentLog(PipelineTask):
         """expects Block from Compressor"""
         self._log_in_db(block)
         self._log_in_sent_log(block)
+        self.log.info("Sent file %s containing files: %s",
+                      block.processed_data_file_info.basename,
+                      str([file_info.path for file_info in block.content_file_infos]))
         return block
 
     # override from PipelineTask
