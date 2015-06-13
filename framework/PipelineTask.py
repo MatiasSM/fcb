@@ -1,4 +1,5 @@
 import threading
+
 from utils.log_helper import get_logger_module
 
 
@@ -14,11 +15,13 @@ class PipelineTask(threading.Thread):
     def __init__(self, name=None, input_queue=None, output_queue=None):
         threading.Thread.__init__(self, name=name if name is not None else self.__class__.__name__)
         self.log = get_logger_module(self.name)
-        self.log.info("MI MODULO: {}".format(self.name))  # TODO BORRAME
-
         self._input_queue = input_queue
         self._output_queue = output_queue
         self._must_stop = False
+
+    def __str__(self):
+        return "{inq} -> {taskname} -> {outq}"\
+            .format(inq=str(self._input_queue), taskname=self.name, outq=str(self._output_queue))
 
     # noinspection PyNoneFunctionAssignment
     def run(self):
@@ -26,15 +29,20 @@ class PipelineTask(threading.Thread):
         self.on_start()
         data = self.get_data_to_process()
         while data is not None and not self._must_stop:
+            self.log.debug("New data: %s", data)
             result = self.process_data(data)
             if result is not None and self._output_queue is not None:
+                self.log.debug("New (implicit) output: %s", result)
                 self._output_queue.put(result)
             data = self.get_data_to_process()
         self.on_stopped()
+        self.distribute_end_of_processing()
+        self.log.debug("Finished processing loop")
 
     def request_stop(self):
         self.log.debug("Requesting to stop.")
         self._must_stop = True
+        self.new_input(None)
 
     def stop(self):
         """
@@ -46,25 +54,27 @@ class PipelineTask(threading.Thread):
 
     def new_input(self, data):
         """
-        pre-condition: self._input_queue is not None (was set)
-
         Adds data to the input queue
 
         :param data: to be added to the input queue
         """
-        self.log.debug("New input {}".format(data))
-        self._input_queue.put(data)
+        if self._input_queue:
+            self.log.debug("New input {}".format(data))
+            self._input_queue.put(data)
+        else:
+            self.log.debug("No input queue to put data")
 
     def new_output(self, data):
         """
-        pre-condition: self._output_queue is not None (was set)
-
         Adds data to the output queue
 
         :param data: to be added to the output queue
         """
-        self.log.debug("New output {}".format(data))
-        self._output_queue.put(data)
+        if self._output_queue:
+            self.log.debug("New output {}".format(data))
+            self._output_queue.put(data)
+        else:
+            self.log.debug("No output queue to put data")
 
     def output_queue(self, output_queue):
         self._output_queue = output_queue
@@ -125,3 +135,10 @@ class PipelineTask(threading.Thread):
         Executed when the task finishes working
         """
         pass
+
+    def distribute_end_of_processing(self):
+        """
+        Implements the logic to distribute the end of processing
+        """
+        self.log.debug("Distributing end of processing")
+        self.new_output(None)  # stops the next task in the pipeline

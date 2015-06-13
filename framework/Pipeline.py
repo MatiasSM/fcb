@@ -1,56 +1,28 @@
 import itertools
 
+from framework.PipelineTaskGroup import PipelineTaskGroup
+from utils.log_helper import get_logger_module
+
 
 class Pipeline(object):
     """
     Represents a pipeline of work (composed of PipelineTasks)
     """
     _task_chain = []
+    log = get_logger_module("Pipeline")
 
-    class _Link(object):
-        """
-        Represents a link in the pipeline
-        """
-        def __init__(self, task_list, pipeline):
-            self.task_list = task_list
-            self.pipeline = pipeline
-
-        def add_in_list(self, tasks, output_queue):
-            if tasks is None:
-                return self
-            for task in tasks:
-                self._connect(task)
-            return self.pipeline.add_in_list(tasks, output_queue)
-
-        def add_many(self, task_builder, output_queue, num_of_tasks):
-            if task_builder is None:
-                return self
-            new_link = self.pipeline.add_many(task_builder, output_queue, num_of_tasks)
-            for task in new_link.task_list:
-                self._connect(task)
-            return new_link
-
-        def add(self, task, output_queue):
-            if task is None:
-                return self
-            self._connect(task)
-            return self.pipeline.add(task, output_queue)
-
-        def _connect(self, task):
-            for in_link in self.task_list:
-                ''' Note: in current impl, all tasks share the same output_queue, have only one input queue and
-                    don't keep any other information about connected tasks. So this is the same as calling
-                    connect_to_output for only one task in the list.
-                    However, calling for everyone feels better and keeps the code working if we want to do something
-                    else when connecting
-                '''
-                in_link.connect_to_output(task)
+    def add(self, task, output_queue):
+        task.output_queue(output_queue)
+        if self._task_chain:
+            self._task_chain[-1].connect_to_output(task)
+        self.log.debug("Pipeline add task: {}".format(str(task)))
+        self._task_chain.append(task)
+        return self
 
     def add_in_list(self, tasks, output_queue):
-        for task in tasks:
-            task.output_queue(output_queue)
-        self._task_chain.extend(tasks)
-        return self._Link(tasks, self)
+        group = PipelineTaskGroup(output_queue=output_queue)
+        group.add_many(tasks)
+        return self.add(task=group, output_queue=output_queue)
 
     def add_many(self, task_builder, output_queue, num_of_tasks):
         """
@@ -60,18 +32,9 @@ class Pipeline(object):
         :param output_queue: output queue for the tasks
         :param num_of_tasks: amount of tasks to add
         """
-        tasks = []
-        for _ in itertools.repeat(None, num_of_tasks):
-            task = task_builder()
-            task.output_queue(output_queue)
-            tasks.append(task)
-        self._task_chain.extend(tasks)
-        return self._Link(tasks, self)
-
-    def add(self, task, output_queue):
-        task.output_queue(output_queue)
-        self._task_chain.append(task)
-        return self._Link((task,), self)
+        return self.add_in_list(
+            tasks=[task_builder() for _ in itertools.repeat(None, num_of_tasks)],
+            output_queue=output_queue)
 
     def start_all(self):
         """
