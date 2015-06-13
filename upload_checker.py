@@ -63,7 +63,7 @@ class CheckHistoryVerifier(object):
                 self._session \
                     .query(FilesDestinations) \
                     .join(Destination) \
-                    .filter(FilesDestinations.verified_mail_id == msg_info.msg_id) \
+                    .filter(FilesDestinations.verification_info == msg_info.msg_id) \
                     .one()
                 return True
             except NoResultFound:
@@ -81,7 +81,7 @@ class CheckHistoryVerifier(object):
         self._session.execute(
             update(FilesDestinations)
             .where(FilesDestinations.file_containers_id == msg_info.files_containers_id)
-            .values(verified_mail_id=msg_info.msg_id)
+            .values(verification_info=msg_info.msg_id)
         )
 
         self.update_last_checked_time(msg_info)
@@ -137,7 +137,6 @@ class Checker(object):
                 if key.lower() == 'name':
                     print "Attachment (NO DTYPE): '%s'" % val
                     return val
-                    break
             else:
                 return None
         else:
@@ -150,9 +149,8 @@ class Checker(object):
                     attachment = 1
             if not attachment:
                 return None
-            return filename
             print "Attachment: '%s'" % filename
-        return None
+            return filename
 
     def _get_files_container_by_name(self, file_name):
         if not self._session:
@@ -207,17 +205,18 @@ class Checker(object):
                 fp = open(tmp_file.path, 'wb')
                 fp.write(part.get_payload(decode=1))
                 fp.flush()
-                fp.close
+                fp.close()
 
+                result = None
                 if tmp_file.sha1 == sha1_in_db:
                     self._log.info("File container '%s' verified!", attachment_name)
-                    return results['OK']
+                    result = results['OK']
                 else:
                     self._log.error("File container '%s' doesn't match the sha1 sum. Expected '%s' but got '%s'",
                                     attachment_name, sha1_in_db, tmp_file.sha1)
-                    return results['BAD']
-
+                    result = results['BAD']
                 os.remove(tmp_file.path)
+                return result
             else:
                 self._log.debug("Attached file '%s' not found in DB. Will ignore this mail.", attachment_name)
         return results['NOT_FCB']  # otherwise it would have already returned
@@ -360,33 +359,35 @@ class Configuration(object):
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", child.tag)
 
-
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        log.error("Usage: %s <config_file>", sys.argv[0])
-        exit(1)
+    def main():
+        if len(sys.argv) < 2:
+            log.error("Usage: %s <config_file>", sys.argv[0])
+            exit(1)
 
-    conf = Configuration(sys.argv[1])
+        conf = Configuration(sys.argv[1])
 
-    session = get_session()
-    db_version = get_db_version(session)
-    if db_version != 3:
-        log.error("Invalid database version (%d). 3 expected", db_version)
+        session = get_session()
+        db_version = get_db_version(session)
+        if db_version != 3:
+            log.error("Invalid database version (%d). 3 expected", db_version)
+            session.close()
+            exit(1)
+
         session.close()
-        exit(1)
 
-    session.close()
+        checker = Checker()
+        verifier = Verifier(checker)
 
-    checker = Checker()
-    verifier = Verifier(checker)
+        def signal_handler(signal, frame):
+            print "Abort signal received!!!!"
+            verifier.stop()
 
-    def signal_handler(signal, frame):
-        print "Abort signal received!!!!"
-        verifier.stop()
+        signal.signal(signal.SIGINT, signal_handler)
 
-    signal.signal(signal.SIGINT, signal_handler)
+        for mail_conf in conf.mail_confs:
+            verifier.verify(mail_conf)
 
-    for mail_conf in conf.mail_confs:
-        verifier.verify(mail_conf)
+        checker.close()
 
-    checker.close()
+    main()

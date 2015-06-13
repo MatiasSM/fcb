@@ -101,7 +101,12 @@ class FilesDestinations(Base):
     __tablename__ = 'files_destinations'
     file_containers_id = Column(Integer, ForeignKey(FilesContainer.id), primary_key=True)
     destinations_id = Column(Integer, ForeignKey(Destination.id), primary_key=True)
-    verified_mail_id = Column(String, nullable=True)  # TODO remove/rename
+    '''
+    "verification_info" will hold any information required to indicate that the file reached
+    successfully the destination.
+    The type of information held depend on the destination type.
+    '''
+    verification_info = Column(String, nullable=True)
 
     destination = relationship(Destination, backref="files_destinations")
 

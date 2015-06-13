@@ -37,12 +37,15 @@ def delete_unverified_uploads(mail_confs):
         # get unverified FilesDestinations for the configured mail_conf
         files_destinations_q = session.query(FilesDestinations)\
             .filter(
-                FilesDestinations.verified_mail_id.is_(None),
+                FilesDestinations.verification_info.is_(None),
                 FilesDestinations.destinations_id == (
                     select([Destination.id]).
                     where(Destination.destination == mail_conf.user).
                     as_scalar()))
         files_destinations = files_destinations_q.all()
+
+        if not files_destinations:
+            continue
 
         # get FilesContainer.id for containers which are not associated to another destination
         fd1 = aliased(FilesDestinations)
