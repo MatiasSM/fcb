@@ -3,7 +3,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from database.helpers import get_session
 from database.schema import UploadedFile
-from framework.PipelineTask import PipelineTask
+from framework.workflow.PipelineTask import PipelineTask
 
 
 class AlreadyProcessedFilter(PipelineTask):

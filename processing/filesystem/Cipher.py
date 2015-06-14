@@ -7,7 +7,7 @@ import random
 import struct
 from Crypto.Cipher import AES
 
-from framework.PipelineTask import PipelineTask
+from framework.workflow.PipelineTask import PipelineTask
 from processing.filesystem.FileInfo import FileInfo
 
 

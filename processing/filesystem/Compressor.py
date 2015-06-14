@@ -3,7 +3,7 @@ import tempfile
 from datetime import datetime
 import os
 
-from framework.PipelineTask import PipelineTask
+from framework.workflow.PipelineTask import PipelineTask
 from processing.filesystem.FileInfo import FileInfo
 from utils.log_helper import get_logger_module
 
@@ -49,7 +49,7 @@ class Compressor(PipelineTask):
         def add(self, file_info):
             file_size = file_info.size
             new_content_size = self._content_size + file_size
-            if new_content_size > self._max_size:
+            if 0 < self._max_size < new_content_size:
                 raise self.DontFitError()
 
             self._content_size = new_content_size

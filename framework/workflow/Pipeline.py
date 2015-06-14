@@ -1,6 +1,6 @@
 import itertools
 
-from framework.PipelineTaskGroup import PipelineTaskGroup
+from framework.workflow.PipelineTaskGroup import PipelineTaskGroup
 from utils.log_helper import get_logger_module
 
 

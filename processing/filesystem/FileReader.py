@@ -1,6 +1,6 @@
 import os
 
-from framework.PipelineTask import PipelineTask
+from framework.workflow.PipelineTask import PipelineTask
 from processing.filesystem.FileInfo import FileInfo
 
 

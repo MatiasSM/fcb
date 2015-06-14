@@ -7,7 +7,7 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
-from framework.PipelineTask import PipelineTask
+from framework.workflow.PipelineTask import PipelineTask
 
 
 class MailSender(PipelineTask):
@@ -48,7 +48,7 @@ class MailSender(PipelineTask):
     def _send_mail(self, subject, text, files):
         assert type(files) == list
 
-        send_from = self._mail_conf.src_mail
+        send_from = self._mail_conf.src.mail
         send_to = self._mail_conf.dst_mail
 
         self.log.debug("Sending to '%s' files '%s'", str(send_to), str(files))
@@ -71,12 +71,12 @@ class MailSender(PipelineTask):
         for try_num in range(self._mail_conf.retries + 1):
             smtp = None
             try:
-                if self._mail_conf.use_ssl:
-                    smtp = smtplib.SMTP_SSL(self._mail_conf.mail_server, self._mail_conf.mail_server_port)
+                if self._mail_conf.src.use_ssl:
+                    smtp = smtplib.SMTP_SSL(self._mail_conf.src.server, self._mail_conf.src.server_port)
                 else:
-                    smtp = smtplib.SMTP(self._mail_conf.mail_server, self._mail_conf.mail_server_port)
-                if self._mail_conf.src_user and self._mail_conf.src_password:
-                    smtp.login(self._mail_conf.src_user, self._mail_conf.src_password)
+                    smtp = smtplib.SMTP(self._mail_conf.src.server, self._mail_conf.src.server_port)
+                if self._mail_conf.src.user and self._mail_conf.src.password:
+                    smtp.login(self._mail_conf.src.user, self._mail_conf.src.password)
                 smtp.sendmail(send_from, send_to, msg.as_string())
                 sent = True
             except Exception, e:

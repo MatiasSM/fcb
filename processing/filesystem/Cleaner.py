@@ -1,5 +1,6 @@
 import os
-from framework.PipelineTask import PipelineTask
+
+from framework.workflow.PipelineTask import PipelineTask
 
 
 class Cleaner(PipelineTask):

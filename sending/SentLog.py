@@ -3,20 +3,21 @@ from sqlalchemy.orm.exc import NoResultFound
 from database.helpers import get_session
 from database.schema import FilesContainer, FilesDestinations, Destination, UploadedFile, FileFragment, \
     FilesInContainers
-from framework.PipelineTask import PipelineTask
+from framework.workflow.PipelineTask import PipelineTask
 
 
 class SentLog(PipelineTask):
     def __init__(self, sent_log):
         PipelineTask.__init__(self)
         self._session = None
-        self._sent_log_file = open(sent_log, 'a')
+        self._sent_log_file = open(sent_log, 'a') if sent_log else None
 
     # override from PipelineTask
     def process_data(self, block):
         """expects Block from Compressor"""
         self._log_in_db(block)
-        self._log_in_sent_log(block)
+        if self._sent_log_file:
+            self._log_in_sent_log(block)
         self.log.info("Sent file %s containing files: %s",
                       block.processed_data_file_info.basename,
                       str([file_info.path for file_info in block.content_file_infos]))
