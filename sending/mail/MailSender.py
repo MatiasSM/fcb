@@ -20,14 +20,20 @@ class MailSender(PipelineTask):
         """
         Note: Expects Compressor Block like objects
         """
+        ''' FIXME currently we return block whether it was correctly processed or not because MailSenders are chained
+            and not doing that would mean other wouldn't be able to try.'''
+        if not set(self._mail_conf.dst_mail).issubset(block.destinations):
+            self.log.debug("Block not for this mail destination %s", self._mail_conf.dst_mail)
+            return block
+
         if self._send_mail(subject=block.ciphered_file_info.basename,
                            text=self._gen_mail_content(block),
                            files=[block.ciphered_file_info.path]):
             if not hasattr(block, 'send_destinations'):
                 block.send_destinations = []
             block.send_destinations.extend(self._mail_conf.dst_mail)
-            return block
-        return None
+        return block
+        # return None
 
     @staticmethod
     def _gen_file_info(file_info):

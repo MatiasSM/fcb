@@ -1,4 +1,5 @@
 import re
+import tempfile
 import xml.etree.ElementTree as Etree
 
 from utils.log_helper import get_logger_for
@@ -13,12 +14,17 @@ def _parse_bool(text):
     return bool(text)
 
 
-def _value_builder(variable, text):
+def _value_builder(variable, node):
     if variable is None:
-        return text
+        return node.text
 
     var_type = type(variable)
-    return _parse_bool(text) if var_type == bool else var_type(text)
+    if var_type == bool:
+        return _parse_bool(node.text)
+    elif isinstance(variable, _PlainNode):
+        return var_type(node)
+    else:
+        return var_type(node.text)
 
 
 def _parse_fields_in_root(instance, root):
@@ -35,9 +41,9 @@ def _parse_field(instance, node):
     tag = node.tag
     try:
         attribute = getattr(instance, tag)
-        setattr(instance, tag, _value_builder(attribute, node.text))
+        setattr(instance, tag, _value_builder(attribute, node))
         return True
-    except AttributeError:
+    except:
         pass
     return False
 
@@ -92,6 +98,8 @@ class _StoredFiles(_PlainNode):
     should_encrypt = True
     should_check_already_sent = True
     delete_temp_files = True
+    tmp_file_parts_basepath = tempfile.gettempdir()
+    should_split_small_files = False
 
     def __init__(self, root=None):
         self.load(root)
@@ -102,7 +110,11 @@ class _CipherSettings(object):
 
     def __init__(self, root=None, default_performance=None):
         self.performance = default_performance if default_performance is not None else _Performance()
-        _parse_fields_in_root(self, root)
+        if root is not None:
+            for node in root:
+                tag = node.tag
+                if tag == "performance":
+                    self.performance.load(node)
 
 
 class _MailAccount(object):
@@ -145,12 +157,16 @@ class _MailAccount(object):
 
         _check_required_fields(self, ["src", "dst_mail"])
 
+    @property
+    def destinations(self):
+        return self.dst_mail
+
 # ----- Settings -----------------------
 
 
 class Settings(object):
     performance = _Performance()
-    limits = _Limits()
+    _limits = _Limits()
     stored_files = _StoredFiles()
     cipher = _CipherSettings()
     mail_accounts = []
@@ -169,7 +185,7 @@ class Settings(object):
             if tag == "performance":
                 self.performance = _Performance(node)
             elif tag == "limits":
-                self.limits = _Limits(node)
+                self._limits = _Limits(node)
             elif tag == "stored_files":
                 self.stored_files = _StoredFiles(node)
             elif tag == "sent_files_log":
@@ -186,4 +202,4 @@ class Settings(object):
 
         if ms_node is not None:
             for sub_node in ms_node.iter("account"):
-                self.mail_accounts.append(_MailAccount(sub_node, self.limits))
+                self.mail_accounts.append(_MailAccount(sub_node, self._limits))

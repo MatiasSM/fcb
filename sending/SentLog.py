@@ -15,12 +15,15 @@ class SentLog(PipelineTask):
     # override from PipelineTask
     def process_data(self, block):
         """expects Block from Compressor"""
-        self._log_in_db(block)
-        if self._sent_log_file:
-            self._log_in_sent_log(block)
-        self.log.info("Sent file %s containing files: %s",
-                      block.processed_data_file_info.basename,
-                      str([file_info.path for file_info in block.content_file_infos]))
+        if hasattr(block, 'send_destinations'):
+            self._log_in_db(block)
+            if self._sent_log_file:
+                self._log_in_sent_log(block)
+            self.log.info("Sent file %s containing files: %s",
+                          block.processed_data_file_info.basename,
+                          str([file_info.path for file_info in block.content_file_infos]))
+        else:
+            self.log.info("File %s wasn't sent", block.processed_data_file_info.basename)
         return block
 
     # override from PipelineTask

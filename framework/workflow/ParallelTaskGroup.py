@@ -4,7 +4,7 @@ import threading
 from utils.log_helper import get_logger_module
 
 
-class PipelineTaskGroup(threading.Thread):
+class ParallelTaskGroup(threading.Thread):
     """
     Groups a set of tasks to work together
 

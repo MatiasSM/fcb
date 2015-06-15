@@ -65,17 +65,6 @@ class FilesContainer(Base):
 
     files_destinations = relationship("FilesDestinations", backref="file_containers")
 
-    @classmethod
-    def get_bytes_uploaded_in_date(cls,
-                                   a_session,
-                                   date=datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)):
-        one_more_day = date + datetime.timedelta(days=1)
-
-        size_sum = a_session\
-            .query(func.sum(cls.container_size))\
-            .filter(cls.upload_date >= date, cls.upload_date < one_more_day)\
-            .scalar()
-        return 0 if size_sum is None else size_sum
 
 class FileFragment(Base):
     """
@@ -109,6 +98,24 @@ class FilesDestinations(Base):
     verification_info = Column(String, nullable=True)
 
     destination = relationship(Destination, backref="files_destinations")
+
+    @classmethod
+    def get_bytes_uploaded_in_date(cls,
+                                   a_session,
+                                   destinations,
+                                   date=datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)):
+        one_more_day = date + datetime.timedelta(days=1)
+
+        size_sum = a_session\
+            .query(func.sum(FilesContainer.container_size))\
+            .select_from(FilesDestinations) \
+            .join(Destination) \
+            .join(FilesContainer) \
+            .filter(FilesContainer.upload_date >= date,
+                    FilesContainer.upload_date < one_more_day,
+                    Destination.destination.in_(destinations))\
+            .scalar()
+        return 0 if size_sum is None else size_sum
 
 
 class FilesInContainers(Base):

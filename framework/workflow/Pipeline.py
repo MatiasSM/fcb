@@ -1,6 +1,6 @@
 import itertools
 
-from framework.workflow.PipelineTaskGroup import PipelineTaskGroup
+from framework.workflow.ParallelTaskGroup import ParallelTaskGroup
 from utils.log_helper import get_logger_module
 
 
@@ -20,11 +20,11 @@ class Pipeline(object):
         return self
 
     def add_in_list(self, tasks, output_queue):
-        group = PipelineTaskGroup(output_queue=output_queue)
-        group.add_many(tasks)
-        return self.add(task=group, output_queue=output_queue)
+        for task in tasks:
+            self.add(task, output_queue)
+        return self
 
-    def add_many(self, task_builder, output_queue, num_of_tasks):
+    def add_parallel(self, task_builder, output_queue, num_of_tasks):
         """
         Adds many tasks associated to the same output queue
 
@@ -32,9 +32,9 @@ class Pipeline(object):
         :param output_queue: output queue for the tasks
         :param num_of_tasks: amount of tasks to add
         """
-        return self.add_in_list(
-            tasks=[task_builder() for _ in itertools.repeat(None, num_of_tasks)],
-            output_queue=output_queue)
+        group = ParallelTaskGroup(output_queue=output_queue)
+        group.add_many([task_builder() for _ in itertools.repeat(None, num_of_tasks)])
+        return self.add(task=group, output_queue=output_queue)
 
     def start_all(self):
         """

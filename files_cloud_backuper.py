@@ -6,26 +6,24 @@ import sys
 
 from database.helpers import get_session
 from database.helpers import get_db_version
-from database.schema import FilesContainer
 from framework.workflow.Pipeline import Pipeline
 from processing.filesystem.Cleaner import Cleaner
 from processing.filesystem.AlreadyProcessedFilter import AlreadyProcessedFilter
 from processing.filesystem.Cipher import Cipher
 from processing.filesystem.Compressor import Compressor
 from processing.filesystem.FileReader import FileReader
-import processing.filesystem.Settings as filesystem_settings
+import processing.filesystem.Settings as FilesystemSettings
 from sending.FakeSender import FakeSender
 from sending.SentLog import SentLog
 from sending.mail.MailSender import MailSender
 from utils.Settings import Settings
 from utils.log_helper import get_logger_module
 
-
-
 # noinspection PyUnresolvedReferences
 import log_configuration
 
 log = get_logger_module('main')
+
 
 def read_files(reader, files):
     for path in files:
@@ -46,24 +44,22 @@ class ProgramAborter(object):
         self._pipeline.stop_all()
         log.info("Should finish processing soon")
 
+
 aborter = None
 
-def signal_handler(signal, frame):
+
+def signal_handler(*_):
     global aborter
 
     print "Abort signal received!!!!"
     aborter.abort()
 
-def get_bytes_uploaded_today(conn):
-    return FilesContainer.get_bytes_uploaded_in_date(conn)
 
-
-def build_pipeline(files_to_read, settings, bytes_uploaded_today):
-
-    # TODO CAMBIAR
-    fs_settings = filesystem_settings.Settings()
-    fs_settings.max_size_in_bytes = settings.limits.max_size.in_bytes
-    fs_settings.max_upload_per_day_in_bytes = settings.limits.max_upload_per_day.in_bytes
+def build_pipeline(files_to_read, settings, session):
+    fs_settings = FilesystemSettings.Settings(
+        sender_settings_list=[sender_settings for sender_settings in settings.mail_accounts],
+        stored_files_settings=settings.stored_files,
+        db_session=session)
 
     # The pipeline goes:
     #    read files -> filter -> compress -> [cipher] -> send -> log -> finish
@@ -71,17 +67,16 @@ def build_pipeline(files_to_read, settings, bytes_uploaded_today):
 
     Limited_Queue = lambda: Queue.Queue(settings.performance.max_pending_for_processing)
     pipeline \
-        .add(task=FileReader().input_queue(files_to_read), output_queue=Limited_Queue())\
+        .add(task=FileReader().input_queue(files_to_read), output_queue=Limited_Queue()) \
         .add(task=AlreadyProcessedFilter() if settings.stored_files.should_check_already_sent else None,
-             output_queue=Limited_Queue())\
-        .add(task=Compressor(fs_settings, bytes_uploaded_today), output_queue=Limited_Queue())\
-        .add_many(task_builder=Cipher if settings.stored_files.should_encrypt else None,
-                  output_queue=Limited_Queue(), num_of_tasks=settings.cipher.performance.threads)\
-        .add_in_list(
-            tasks=[MailSender(sender_conf) for sender_conf in settings.mail_accounts]
-            if settings.mail_accounts else [FakeSender()],
-            output_queue=Limited_Queue())\
-        .add(task=SentLog(settings.sent_files_log), output_queue=Limited_Queue())\
+             output_queue=Limited_Queue()) \
+        .add(task=Compressor(fs_settings), output_queue=Limited_Queue()) \
+        .add_parallel(task_builder=Cipher if settings.stored_files.should_encrypt else None,
+                      output_queue=Limited_Queue(), num_of_tasks=settings.cipher.performance.threads) \
+        .add_in_list(tasks=[MailSender(sender_conf) for sender_conf in settings.mail_accounts]
+    if settings.mail_accounts else [FakeSender()],
+                     output_queue=Limited_Queue()) \
+        .add(task=SentLog(settings.sent_files_log), output_queue=Limited_Queue()) \
         .add(task=Cleaner(settings.stored_files.delete_temp_files), output_queue=None)
     return pipeline
 
@@ -103,17 +98,15 @@ if __name__ == '__main__':
             session.close()
             exit(1)
 
-        bytes_uploaded_today = get_bytes_uploaded_today(session)
-        log.info("According to the logs, it were already uploaded today %d bytes", bytes_uploaded_today)
-        session.close()
-
         files_to_read = Queue.Queue()
         # load files to read
         for file_path in sys.argv[2:]:
             files_to_read.put(file_path)
         files_to_read.put(None)
 
-        pipeline = build_pipeline(files_to_read, settings, bytes_uploaded_today)
+        pipeline = build_pipeline(files_to_read, settings, session)
+
+        session.close()
 
         # create gracefully finalization mechanism
         aborter = ProgramAborter(pipeline)

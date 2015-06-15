@@ -17,7 +17,7 @@ from database.helpers import get_session
 from database.helpers import get_db_version
 from database.schema import FilesContainer, CheckerState, Destination, FilesDestinations
 from processing.filesystem.FileInfo import FileInfo
-from utils.log_helper import get_logger_module
+from utils.log_helper import get_logger_for, get_logger_module
 
 # noinspection PyUnresolvedReferences
 import log_configuration
@@ -26,7 +26,7 @@ import log_configuration
 class CheckHistoryVerifier(object):
     def __init__(self, mail_dst):
         self._session = get_session()
-        self._log = get_logger_module(self.__class__.__name__)
+        self._log = get_logger_for(self)
         self._mail_dst = mail_dst
         self._last_checked_date = None
 
@@ -101,7 +101,7 @@ class CheckHistoryVerifier(object):
 class Checker(object):
     def __init__(self):
         self._session = None
-        self._log = get_logger_module(self.__class__.__name__)
+        self._log = get_logger_for(self)
 
         file_lines = "(^File: .+\\(sha1: .*\\).*\n)+"
         empty_lines = "^(?:\n|\r\n?)*"
