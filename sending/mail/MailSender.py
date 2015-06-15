@@ -22,8 +22,8 @@ class MailSender(PipelineTask):
         """
         ''' FIXME currently we return block whether it was correctly processed or not because MailSenders are chained
             and not doing that would mean other wouldn't be able to try.'''
-        if not set(self._mail_conf.dst_mail).issubset(block.destinations):
-            self.log.debug("Block not for this mail destination %s", self._mail_conf.dst_mail)
+        if not set(self._mail_conf.dst_mails).issubset(block.destinations):
+            self.log.debug("Block not for this mail destination %s", self._mail_conf.dst_mails)
             return block
 
         if self._send_mail(subject=block.ciphered_file_info.basename,
@@ -31,7 +31,7 @@ class MailSender(PipelineTask):
                            files=[block.ciphered_file_info.path]):
             if not hasattr(block, 'send_destinations'):
                 block.send_destinations = []
-            block.send_destinations.extend(self._mail_conf.dst_mail)
+            block.send_destinations.extend(self._mail_conf.dst_mails)
         return block
         # return None
 
@@ -55,7 +55,7 @@ class MailSender(PipelineTask):
         assert type(files) == list
 
         send_from = self._mail_conf.src.mail
-        send_to = self._mail_conf.dst_mail
+        send_to = self._mail_conf.dst_mails
 
         self.log.debug("Sending to '%s' files '%s'", str(send_to), str(files))
         msg = MIMEMultipart()

@@ -135,7 +135,7 @@ class _MailAccount(object):
     limits = None
     src = None
     subject_prefix = ""
-    dst_mail = None
+    dst_mails = None
     retries = 3
     time_between_retries = 5
 
@@ -147,19 +147,19 @@ class _MailAccount(object):
                 self.limits.load(node)
             elif tag == "src":
                 self.src = self.Source(node)
-            elif tag == "dst_mail":
-                if self.dst_mail is None:
-                    self.dst_mail = [node.text]
+            elif tag == "dst_mails":
+                if self.dst_mails is None:
+                    self.dst_mails = [node.text]
                 else:
-                    self.dst_mail.append(node.text)
+                    self.dst_mails.append(node.text)
             else:
                 _parse_field(self, node)
 
-        _check_required_fields(self, ["src", "dst_mail"])
+        _check_required_fields(self, ["src", "dst_mails"])
 
     @property
     def destinations(self):
-        return self.dst_mail
+        return self.dst_mails
 
 # ----- Settings -----------------------
 
