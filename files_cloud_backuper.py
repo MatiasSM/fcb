@@ -15,9 +15,11 @@ from processing.filesystem.FileReader import FileReader
 import processing.filesystem.Settings as FilesystemSettings
 from sending.FakeSender import FakeSender
 from sending.SentLog import SentLog
+from sending.directory.ToDirectorySender import ToDirectorySender
 from sending.mail.MailSender import MailSender
 from utils.Settings import Settings
 from utils.log_helper import get_logger_module
+
 
 # noinspection PyUnresolvedReferences
 import log_configuration
@@ -56,8 +58,12 @@ def signal_handler(*_):
 
 
 def build_pipeline(files_to_read, settings, session):
+    sender_settings = [sender_settings for sender_settings in settings.mail_accounts]
+    if settings.dir_dest is not None:
+        sender_settings.append(settings.dir_dest)
+
     fs_settings = FilesystemSettings.Settings(
-        sender_settings_list=[sender_settings for sender_settings in settings.mail_accounts],
+        sender_settings_list=sender_settings,
         stored_files_settings=settings.stored_files,
         db_session=session)
 
@@ -74,8 +80,10 @@ def build_pipeline(files_to_read, settings, session):
         .add_parallel(task_builder=Cipher if settings.stored_files.should_encrypt else None,
                       output_queue=Limited_Queue(), num_of_tasks=settings.cipher.performance.threads) \
         .add_in_list(tasks=[MailSender(sender_conf) for sender_conf in settings.mail_accounts]
-    if settings.mail_accounts else [FakeSender()],
+                     if settings.mail_accounts else [FakeSender()],
                      output_queue=Limited_Queue()) \
+        .add(task=ToDirectorySender(settings.dir_dest.path) if settings.dir_dest is not None else None,
+             output_queue=Limited_Queue()) \
         .add(task=SentLog(settings.sent_files_log), output_queue=Limited_Queue()) \
         .add(task=Cleaner(settings.stored_files.delete_temp_files), output_queue=None)
     return pipeline

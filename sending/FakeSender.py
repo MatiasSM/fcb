@@ -9,3 +9,4 @@ class FakeSender(PipelineTask):
         if not hasattr(block, 'send_destinations'):
             block.send_destinations = []
         block.send_destinations.append("Fake Destination")
+        return block

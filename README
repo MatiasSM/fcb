@@ -1,5 +1,6 @@
 
 Requires PyCrypto (https://www.dlitz.net/software/pycrypto/) tested on version 2.6
+Requires SQLAlchemy (pip install sqlalchemy)
 
 For more information check the webpage of the project:
 http://sourceforge.net/projects/files-cloud-backuper/

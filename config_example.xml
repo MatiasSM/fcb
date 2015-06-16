@@ -41,5 +41,9 @@
         </account>
     </mail_sender>
 
+    <dir_destination>
+        <path>destination/my_files/</path>
+    </dir_destination>
+
     <sent_files_log>files_sent.log</sent_files_log>
 </configuration>

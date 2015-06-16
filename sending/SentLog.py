@@ -75,6 +75,8 @@ class SentLog(PipelineTask):
             file_destination = FilesDestinations()
             file_destination.destination = Destination.get_or_add(self._session, destination)
             file_destination.file_containers_id = file_container.id  # FIXME according to the example in SQLAlchemy, this shouldn't be needed
+            if hasattr(block, 'destinations_verif_data') and destination in block.destinations_verif_data:
+                file_destination.verification_info = block.destinations_verif_data[destination]
             file_container.files_destinations.append(file_destination)
 
         # save/update each file in the container

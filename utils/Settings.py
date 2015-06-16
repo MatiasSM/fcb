@@ -1,3 +1,4 @@
+import os
 import re
 import tempfile
 import xml.etree.ElementTree as Etree
@@ -161,6 +162,31 @@ class _MailAccount(object):
     def destinations(self):
         return self.dst_mails
 
+
+class _DirDestination(object):
+    limits = None
+    path = None
+
+    def __init__(self, root, default_limits):
+        self.limits = default_limits if default_limits is not None else _Limits()
+        for node in root:
+            tag = node.tag
+            if tag == "limits":
+                self.limits.load(node)
+            else:
+                _parse_field(self, node)
+
+        _check_required_fields(self, ["path"])
+
+        log = get_logger_for(self)
+        conf_path = self.path
+        self.path = os.path.abspath(conf_path)
+        log.debug("Configured path '{}' interpreted as absolute path '{}'".format(conf_path, self.path))
+
+    @property
+    def destinations(self):
+        return [self.path]
+
 # ----- Settings -----------------------
 
 
@@ -171,6 +197,7 @@ class Settings(object):
     cipher = _CipherSettings()
     mail_accounts = []
     sent_files_log = None
+    dir_dest = None
 
     def __init__(self, file_path):
         self._parse(Etree.parse(file_path))
@@ -180,6 +207,7 @@ class Settings(object):
 
         cipher_node = None
         ms_node = None
+        dir_dest_node = None
         for node in tree.getroot():
             tag = node.tag
             if tag == "performance":
@@ -194,6 +222,8 @@ class Settings(object):
                 cipher_node = node  # we keep it until we have processed other tags (we need performance loaded)
             elif tag == "mail_sender":
                 ms_node = node  # we keep it until we have processed other tags (we need limits loaded)
+            elif tag == "dir_destination":
+                dir_dest_node = node  # we keep it until we have processed other tags (we need limits loaded)
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", tag)
 
@@ -203,3 +233,6 @@ class Settings(object):
         if ms_node is not None:
             for sub_node in ms_node.iter("account"):
                 self.mail_accounts.append(_MailAccount(sub_node, self._limits))
+
+        if dir_dest_node is not None:
+            self.dir_dest = _DirDestination(dir_dest_node, self._limits)
