@@ -1,21 +1,28 @@
+from copy import deepcopy
+import pprint
 from database.schema import FilesDestinations
-from utils.log_helper import get_logger_for
+from utils.log_helper import get_logger_for, deep_print
+
 
 class _SenderRestriction(object):
     def __init__(self, sender_settings):
         self.max_upload_per_day_in_bytes = sender_settings.limits.max_upload_per_day.in_bytes
         self.max_size_in_bytes = sender_settings.limits.max_size.in_bytes
+        self.max_files_per_container = sender_settings.limits.max_files_per_container
 
     def __eq__(self, other):
         return other \
                and self.max_upload_per_day_in_bytes == other.max_upload_per_day_in_bytes \
-               and self.max_size_in_bytes == other.max_size_in_bytes
+               and self.max_size_in_bytes == other.max_size_in_bytes \
+               and self.max_files_per_container == other.max_files_per_container
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.max_upload_per_day_in_bytes, self.max_size_in_bytes))
+        return hash((self.max_upload_per_day_in_bytes,
+                     self.max_size_in_bytes,
+                     self.max_files_per_container))
 
 class _SenderSpec(object):
     restrictions = None
@@ -25,7 +32,7 @@ class _SenderSpec(object):
     def __init__(self, sender_settings, db_session):
         log = get_logger_for(self)
         self.restrictions = _SenderRestriction(sender_settings)
-        self.destinations = sender_settings.destinations
+        self.destinations = deepcopy(sender_settings.destinations)
         self.bytes_uploaded_today = \
             FilesDestinations.get_bytes_uploaded_in_date(db_session, self.destinations)
         log.info("According to the logs, it were already uploaded today %d bytes for destinations %s",

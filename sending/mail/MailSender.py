@@ -1,3 +1,4 @@
+from copy import deepcopy
 import smtplib
 import os
 from email import Encoders
@@ -8,12 +9,13 @@ from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
 from framework.workflow.PipelineTask import PipelineTask
+from utils.log_helper import deep_print
 
 
 class MailSender(PipelineTask):
     def __init__(self, mail_conf):
         PipelineTask.__init__(self)
-        self._mail_conf = mail_conf
+        self._mail_conf = deepcopy(mail_conf)
 
     # override from PipelineTask
     def process_data(self, block):

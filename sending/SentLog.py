@@ -19,7 +19,8 @@ class SentLog(PipelineTask):
             self._log_in_db(block)
             if self._sent_log_file:
                 self._log_in_sent_log(block)
-            self.log.info("Sent file %s containing files: %s",
+            self.log.info("Sent to '%s' file '%s' containing files: %s",
+                          str(block.send_destinations),
                           block.processed_data_file_info.basename,
                           str([file_info.path for file_info in block.content_file_infos]))
         else:

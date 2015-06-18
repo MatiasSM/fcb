@@ -64,6 +64,9 @@ class PipelineTask(threading.Thread):
         else:
             self.log.debug("No input queue to put data")
 
+    def has_pending_input(self):
+        return not self._input_queue.empty()
+
     def new_output(self, data):
         """
         Adds data to the output queue
