@@ -18,7 +18,7 @@ from sending.SentLog import SentLog
 from sending.directory.ToDirectorySender import ToDirectorySender
 from sending.mail.MailSender import MailSender
 from utils.Settings import Settings
-from utils.log_helper import get_logger_module
+from utils.log_helper import get_logger_module, deep_print
 
 
 # noinspection PyUnresolvedReferences
@@ -58,6 +58,8 @@ def signal_handler(*_):
 
 
 def build_pipeline(files_to_read, settings, session):
+    log.debug(deep_print(settings, "Building pipeline using settings loaded:"))
+
     sender_settings = [sender_settings for sender_settings in settings.mail_accounts]
     if settings.dir_dest is not None:
         sender_settings.append(settings.dir_dest)
@@ -110,7 +112,6 @@ if __name__ == '__main__':
         # load files to read
         for file_path in sys.argv[2:]:
             files_to_read.put(file_path)
-        files_to_read.put(None)
 
         pipeline = build_pipeline(files_to_read, settings, session)
 

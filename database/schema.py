@@ -39,7 +39,7 @@ class Destination(Base):
     """
     __tablename__ = 'destinations'
     id = Column(Integer, primary_key=True)
-    destination = Column(String)  # destination name TODO VER
+    destination = Column(String)  # destination name
     creation_date = Column(DateTime, default=datetime.datetime.utcnow())  # date when the destination was created
 
     @classmethod

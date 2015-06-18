@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 import re
 import tempfile
@@ -51,7 +52,8 @@ def _parse_field(instance, node):
 
 def _check_required_fields(instance, fields):
     for field in fields:
-        getattr(instance, field)
+        if getattr(instance, field) is None:
+            raise Exception("Field {} not set".format(field))
 
 # --------------- sections and helpful parsers ---------------
 
@@ -89,7 +91,7 @@ class _Limits(_PlainNode):
     # recognized fields (0 means, no limit)
     max_upload_per_day = _Size("0")
     max_size = _Size("0")
-    # max_files_per_container = 0
+    max_files_per_container = 0
 
     def __init__(self, root=None):
         self.load(root)
@@ -110,7 +112,7 @@ class _CipherSettings(object):
     performance = None
 
     def __init__(self, root=None, default_performance=None):
-        self.performance = default_performance if default_performance is not None else _Performance()
+        self.performance = deepcopy(default_performance) if default_performance is not None else _Performance()
         if root is not None:
             for node in root:
                 tag = node.tag
@@ -141,14 +143,14 @@ class _MailAccount(object):
     time_between_retries = 5
 
     def __init__(self, root, default_limits):
-        self.limits = default_limits if default_limits is not None else _Limits()
+        self.limits = deepcopy(default_limits) if default_limits is not None else _Limits()
         for node in root:
             tag = node.tag
             if tag == "limits":
                 self.limits.load(node)
             elif tag == "src":
                 self.src = self.Source(node)
-            elif tag == "dst_mails":
+            elif tag == "dst_mail":
                 if self.dst_mails is None:
                     self.dst_mails = [node.text]
                 else:
@@ -162,13 +164,12 @@ class _MailAccount(object):
     def destinations(self):
         return self.dst_mails
 
-
 class _DirDestination(object):
     limits = None
     path = None
 
     def __init__(self, root, default_limits):
-        self.limits = default_limits if default_limits is not None else _Limits()
+        self.limits = deepcopy(default_limits) if default_limits is not None else _Limits()
         for node in root:
             tag = node.tag
             if tag == "limits":
