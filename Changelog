@@ -1,6 +1,8 @@
 Release 0.3.0:
     * Completely rewrite previous functionality to get more maintainable code
     * Though a minor version change, this version is INCOMPATIBLE (sorry about that)
+    * Adds directory destination (to save containers into a directory)
+    * Adds container limit by file count (not only content size)
 
 Release 0.2.0:
     files_cloud_backuper:
