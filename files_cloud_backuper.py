@@ -9,7 +9,7 @@ from database.helpers import get_db_version
 from framework.workflow.Pipeline import Pipeline
 from processing.filesystem.Cleaner import Cleaner
 from processing.filesystem.AlreadyProcessedFilter import AlreadyProcessedFilter
-from processing.filesystem.Cipher import Cipher
+from processing.transformations.Cipher import Cipher
 from processing.filesystem.Compressor import Compressor
 from processing.filesystem.FileReader import FileReader
 import processing.filesystem.Settings as FilesystemSettings

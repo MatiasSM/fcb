@@ -1,18 +1,25 @@
 import sys
-import sqlite3
+
 from database.helpers import get_session
 from database.schema import FilesContainer
-
-from processing.filesystem.Cipher import Cipher
-from database import settings
+from processing.transformations.Cipher import Cipher
+from processing.transformations import ToImage
 from utils.digest import gen_sha1
 from utils.log_helper import get_logger_module
+
 
 # noinspection PyUnresolvedReferences
 import log_configuration
 
 log = get_logger_module('decipher_file')
 
+# TODO renombrar a transform_file
+# TODO determinar si esta transformado a imagen y convertirlo previamente
+# TODO determinar si esta cifrado y descifrarlo
+# TODO remover extensiones (en lugar de agregar nuevas)
+
+def transform_from_image(in_filename, out_filename):
+    ToImage.from_image_to_file(in_filename, out_filename)
 
 def decript(key, in_filename, out_filename):
     log.debug("Decrypting file '%s' with key '%s'. Resulting file will be called '%s'." %

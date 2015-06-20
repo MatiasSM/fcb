@@ -19,6 +19,7 @@ class Cipher(PipelineTask):
         """
         block.cipher_key = Cipher.gen_key(32)
         block.ciphered_file_info = FileInfo(block.processed_data_file_info.path + ".enc")
+        block.latest_file_info = block.ciphered_file_info
         self.log.debug("Encrypting file '%s' with key '%s' to file '%s'",
                        block.processed_data_file_info.path, block.cipher_key, block.ciphered_file_info.path)
         Cipher.encrypt_file(key=block.cipher_key, 
@@ -28,7 +29,7 @@ class Cipher(PipelineTask):
 
     @classmethod
     def gen_key(cls, size):
-        return ''.join(random.choice("".join((string.letters,string.digits,string.punctuation))) for _ in range(size))
+        return ''.join(random.choice("".join((string.letters, string.digits,string.punctuation))) for _ in range(size))
     
     @classmethod
     def encrypt_file(cls, key, in_filename, out_filename=None, chunksize=64*1024):

@@ -18,6 +18,18 @@ class Block(object):
         self._content_file_infos = []
         self._fragmented_files = []
         self._processed_data_file_info = None
+        self._latest_file_info = None
+        self.all_gen_files = []
+
+    @property
+    def latest_file_info(self):
+        return self._latest_file_info
+
+    @latest_file_info.setter
+    def latest_file_info(self, value):
+        if self._latest_file_info != value:
+            self._latest_file_info = value
+            self.all_gen_files.append(value)
 
     @property
     def fragmented_files(self):
@@ -53,6 +65,7 @@ class Block(object):
                 tar.add(file_info.path, arcname=file_info.basename)
             tar.close()
         self._processed_data_file_info = FileInfo(output_filename)
+        self.latest_file_info = self._processed_data_file_info
         self.log.debug("Created %s", output_filename)
 
 

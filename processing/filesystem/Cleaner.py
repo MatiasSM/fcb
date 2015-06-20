@@ -11,12 +11,12 @@ class Cleaner(PipelineTask):
     # override from PipelineTask
     def process_data(self, block):
         if self._delete_temp_files:
-            self.log.debug("REMOVE: %s", block.processed_data_file_info.path)
-            os.remove(block.processed_data_file_info.path)
-            if hasattr(block, 'ciphered_file_info'):
-                os.remove(block.ciphered_file_info.path)
-                self.log.debug("REMOVE: %s", block.ciphered_file_info.path)
+            # remove "result" files
+            for tmp_file in block.all_gen_files:
+                self.log.debug("REMOVING: %s", tmp_file.path)
+                os.remove(tmp_file.path)
+            # remove fragments
             for content_file_info in block.content_file_infos:
                 if hasattr(content_file_info, 'fragment_info'):
                     os.remove(content_file_info.path)
-                    self.log.debug("REMOVE: %s", content_file_info.path)
+                    self.log.debug("REMOVING: %s", content_file_info.path)

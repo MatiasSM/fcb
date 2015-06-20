@@ -29,8 +29,8 @@ class ToDirectorySender(PipelineTask):
             self.log.debug("Block not for this destination %s", self._dir_path)
             return block
 
-        self.log.debug("Copying file '%s'", block.ciphered_file_info.path)
-        shutil.copy(block.ciphered_file_info.path, self._dir_path)
+        self.log.debug("Copying file '%s'", block.latest_file_info.path)
+        shutil.copy(block.latest_file_info.path, self._dir_path)
         if not hasattr(block, 'send_destinations'):  # FIXME remove, duplicated logic
             block.send_destinations = []
         block.send_destinations.append(self._dir_path)
