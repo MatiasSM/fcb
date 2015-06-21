@@ -13,6 +13,7 @@ from processing.transformations.Cipher import Cipher
 from processing.filesystem.Compressor import Compressor
 from processing.filesystem.FileReader import FileReader
 import processing.filesystem.Settings as FilesystemSettings
+from processing.transformations.ToImage import ToImage
 from sending.FakeSender import FakeSender
 from sending.SentLog import SentLog
 from sending.directory.ToDirectorySender import ToDirectorySender
@@ -81,6 +82,7 @@ def build_pipeline(files_to_read, settings, session):
         .add(task=Compressor(fs_settings), output_queue=Limited_Queue()) \
         .add_parallel(task_builder=Cipher if settings.stored_files.should_encrypt else None,
                       output_queue=Limited_Queue(), num_of_tasks=settings.cipher.performance.threads) \
+        .add(task=ToImage() if settings.to_image.enabled else None, output_queue=Limited_Queue()) \
         .add_in_list(tasks=[MailSender(sender_conf) for sender_conf in settings.mail_accounts]
                      if settings.mail_accounts else [FakeSender()],
                      output_queue=Limited_Queue()) \

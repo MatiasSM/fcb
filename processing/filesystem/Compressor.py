@@ -28,6 +28,7 @@ class Block(object):
     @latest_file_info.setter
     def latest_file_info(self, value):
         if self._latest_file_info != value:
+            self.log.debug("(Block %d) Latest file updated to %s", id(self), value.path)
             self._latest_file_info = value
             self.all_gen_files.append(value)
 
@@ -159,6 +160,7 @@ class _CompressorJob(object):
         self._destinations.extend(destinations)
 
     def process_data(self, file_info):
+        self.log.debug("Processing file: %s", file_info.path)
         # note we check against the file (despite it will be compressed, and possibly require less space) so we
         # can avoid processing it if it wouldn't fit
         if not self._block_fragmenter.does_fit_in_todays_share(file_info):
@@ -232,6 +234,7 @@ class _CompressorJob(object):
 
     def _add_block_if_none(self):
         if not self._current_block:
+            self.log.debug("New block")
             self._current_block = Block(self._destinations)
 
 

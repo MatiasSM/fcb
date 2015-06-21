@@ -4,7 +4,11 @@ import math
 
 from framework.workflow.PipelineTask import PipelineTask
 from processing.filesystem.FileInfo import FileInfo
+from utils.log_helper import get_logger_module
 
+_log = get_logger_module("ToImage")
+
+# TODO image and array manipulation functions need to be optimized (a lot)
 
 def _determine_dimensions(num_of_pixels):
     """
@@ -14,6 +18,7 @@ def _determine_dimensions(num_of_pixels):
     for x in xrange(int(math.sqrt(num_of_pixels)) + 1, 1, -1):
         if num_of_pixels % x == 0:
             return num_of_pixels // x, x
+    return 1, num_of_pixels  # if no better dimensions could be found, use a "line"
 
 
 def _to_image_array(file_path):
@@ -22,6 +27,7 @@ def _to_image_array(file_path):
     The dimensions of the image are calculated using __determine_dimensions.
     Padding is added provide enough bytes to generate the image (between 1 and 3 bytes can be added).
     """
+    _log.debug("File '%s' to image", file_path)
     data = numpy.fromfile(file_path, numpy.uint8)
     orig_len = len(data)
     pad_req = (3 - (orig_len % 3))
@@ -61,12 +67,12 @@ def from_image_to_file(img_path, file_path):
 
 class ToImage(PipelineTask):
     @classmethod
-    def get_image_extension(cls):
+    def get_extension(cls):
         return ".png"
 
     @classmethod
-    def is_converted_image(cls, path):
-        return path.endswith(cls.get_image_extension())
+    def is_transformed(cls, path):
+        return path.endswith(cls.get_extension())
 
     # override from PipelineTask
     def process_data(self, block):
@@ -74,8 +80,9 @@ class ToImage(PipelineTask):
         Note: Expects Compressor Block like objects
         """
         src_file_path = block.latest_file_info.path
-        block.image_converted_file_info = FileInfo(src_file_path + self.get_image_extension())
+        img_path = src_file_path + self.get_extension()
+        self.log.debug("Converting file '%s' to image '%s'", src_file_path, img_path)
+        from_file_to_image(src_file_path, img_path)
+        block.image_converted_file_info = FileInfo(img_path)
         block.latest_file_info = block.image_converted_file_info
-        self.log.debug("Converting file '%s' to image '%s'", src_file_path, block.image_converted_file_info.path)
-        from_file_to_image(src_file_path, block.image_converted_file_info.path)
         return block

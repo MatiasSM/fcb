@@ -21,6 +21,10 @@
         </performance>
     </cipher>
 
+    <to_image>
+        <enabled>True</enabled>
+    </to_image>
+
     <mail_sender>
         <account>
             <limits>

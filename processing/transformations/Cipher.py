@@ -12,19 +12,30 @@ from processing.filesystem.FileInfo import FileInfo
 
 
 class Cipher(PipelineTask):
+    @classmethod
+    def get_extension(cls):
+        return ".enc"
+
+    @classmethod
+    def is_transformed(cls, path):
+        return path.endswith(cls.get_extension())
+
     # override from PipelineTask
     def process_data(self, block):
         """
         Expects Compressor Block like objects
         """
-        block.cipher_key = Cipher.gen_key(32)
-        block.ciphered_file_info = FileInfo(block.processed_data_file_info.path + ".enc")
-        block.latest_file_info = block.ciphered_file_info
+        cipher_key = Cipher.gen_key(32)
+        in_file_path = block.latest_file_info.path
+        dst_file_path = block.processed_data_file_info.path + self.get_extension()
         self.log.debug("Encrypting file '%s' with key '%s' to file '%s'",
-                       block.processed_data_file_info.path, block.cipher_key, block.ciphered_file_info.path)
-        Cipher.encrypt_file(key=block.cipher_key, 
-                            in_filename=block.processed_data_file_info.path, 
-                            out_filename=block.ciphered_file_info.path)
+                       in_file_path, cipher_key, dst_file_path)
+        Cipher.encrypt_file(key=cipher_key,
+                            in_filename=in_file_path,
+                            out_filename=dst_file_path)
+        block.cipher_key = cipher_key
+        block.ciphered_file_info = FileInfo(dst_file_path)
+        block.latest_file_info = block.ciphered_file_info
         return block
 
     @classmethod
