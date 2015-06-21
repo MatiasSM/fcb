@@ -188,6 +188,12 @@ class _DirDestination(object):
     def destinations(self):
         return [self.path]
 
+class _ToImage(_PlainNode):
+    enabled = False
+
+    def __init__(self, root=None):
+        self.load(root)
+
 # ----- Settings -----------------------
 
 
@@ -199,6 +205,7 @@ class Settings(object):
     mail_accounts = []
     sent_files_log = None
     dir_dest = None
+    to_image = _ToImage()
 
     def __init__(self, file_path):
         self._parse(Etree.parse(file_path))
@@ -217,6 +224,8 @@ class Settings(object):
                 self._limits = _Limits(node)
             elif tag == "stored_files":
                 self.stored_files = _StoredFiles(node)
+            elif tag == "to_image":
+                self.to_image = _ToImage(node)
             elif tag == "sent_files_log":
                 _parse_field(self, node)
             elif tag == "cipher":

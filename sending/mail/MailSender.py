@@ -28,9 +28,9 @@ class MailSender(PipelineTask):
             self.log.debug("Block not for this mail destination %s", self._mail_conf.dst_mails)
             return block
 
-        if self._send_mail(subject=block.ciphered_file_info.basename,
+        if self._send_mail(subject=block.latest_file_info.basename,
                            text=self._gen_mail_content(block),
-                           files=[block.ciphered_file_info.path]):
+                           files=[block.latest_file_info.path]):
             if not hasattr(block, 'send_destinations'):
                 block.send_destinations = []
             block.send_destinations.extend(self._mail_conf.dst_mails)
@@ -42,15 +42,13 @@ class MailSender(PipelineTask):
         return "File: {} (sha1: {})\n".format(file_info.basename, file_info.sha1)
 
     def _gen_mail_content(self, block):
-        encrypted = ""
-        if hasattr(block, 'ciphered_file_info'):
-            encrypted = "* Attached:\n%s" % self._gen_file_info(block.ciphered_file_info)
+        attached = "* Attached:\n%s" % self._gen_file_info(block.latest_file_info)
 
         return "\n".join(("* Content:",
                           "".join([self._gen_file_info(f) for f in block.content_file_infos]),
                           "* Tar:",
                           self._gen_file_info(block.processed_data_file_info),
-                          encrypted
+                          attached
                           ))
 
     def _send_mail(self, subject, text, files):

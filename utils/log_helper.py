@@ -9,8 +9,10 @@ def get_logger_for(instance):
 def _do_deep_print(instance, level):
     levels_lines = []
     for attr in instance.__dict__.keys():
+        if attr == "log" or attr == "_log":
+            continue
         val = getattr(instance, attr)
-        if isinstance(val, (bool, int, float, str, unicode, list, dict, set)):
+        if isinstance(val, (bool, int, float, str, unicode, list, dict, set)) or val is None:
             levels_lines.append("{pad}{field}: {value}".format(pad=level * '  ', field=attr, value=val))
         else:
             levels_lines.append("{pad}{field}:".format(pad=level * '  ', field=attr))

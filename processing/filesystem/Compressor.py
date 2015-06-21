@@ -18,6 +18,19 @@ class Block(object):
         self._content_file_infos = []
         self._fragmented_files = []
         self._processed_data_file_info = None
+        self._latest_file_info = None
+        self.all_gen_files = []
+
+    @property
+    def latest_file_info(self):
+        return self._latest_file_info
+
+    @latest_file_info.setter
+    def latest_file_info(self, value):
+        if self._latest_file_info != value:
+            self.log.debug("(Block %d) Latest file updated to %s", id(self), value.path)
+            self._latest_file_info = value
+            self.all_gen_files.append(value)
 
     @property
     def fragmented_files(self):
@@ -53,6 +66,7 @@ class Block(object):
                 tar.add(file_info.path, arcname=file_info.basename)
             tar.close()
         self._processed_data_file_info = FileInfo(output_filename)
+        self.latest_file_info = self._processed_data_file_info
         self.log.debug("Created %s", output_filename)
 
 
@@ -146,6 +160,7 @@ class _CompressorJob(object):
         self._destinations.extend(destinations)
 
     def process_data(self, file_info):
+        self.log.debug("Processing file: %s", file_info.path)
         # note we check against the file (despite it will be compressed, and possibly require less space) so we
         # can avoid processing it if it wouldn't fit
         if not self._block_fragmenter.does_fit_in_todays_share(file_info):
@@ -219,6 +234,7 @@ class _CompressorJob(object):
 
     def _add_block_if_none(self):
         if not self._current_block:
+            self.log.debug("New block")
             self._current_block = Block(self._destinations)
 
 

@@ -57,8 +57,7 @@ class SentLog(PipelineTask):
         if not self._session:
             self._session = get_session()
 
-        sent_file_info = block.ciphered_file_info if hasattr(block, 'ciphered_file_info') \
-            else block.processed_data_file_info
+        sent_file_info = block.latest_file_info
 
         # a new container has been saved
         file_container = FilesContainer(
@@ -116,8 +115,7 @@ class SentLog(PipelineTask):
         """
         # FIXME all these should be done by the block itself
         self._sent_log_file.write("\n")
-        sent_file_info = block.ciphered_file_info if hasattr(block, 'ciphered_file_info') \
-            else block.processed_data_file_info
+        sent_file_info = block.latest_file_info
         self._sent_log_file.write("|".join((sent_file_info.basename, sent_file_info.sha1)))
         if hasattr(block, 'cipher_key'):
             self._sent_log_file.write("|")
