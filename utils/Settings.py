@@ -199,6 +199,52 @@ class _ToImage(_PlainNode):
     def __init__(self, root=None):
         self.load(root)
 
+class _ExcludePaths(object):
+    path_filter_list = []
+
+    def __init__(self, root=None):
+        if root is None:
+            return
+
+        for node in root:
+            tag = node.tag
+            if tag == "file_name":
+                self.path_filter_list.append(self._get_file_regex(node.text))
+            if tag == "dir_name":
+                self.path_filter_list.append(self._get_dir_regex(node.text))
+            if tag == "regex_file_name":
+                self.path_filter_list.append(self._get_re_file_regex(node.text))
+            if tag == "regex_dir_name":
+                self.path_filter_list.append(self._get_re_dir_regex(node.text))
+            if tag == "regex":
+                self.path_filter_list.append(node.text)
+            else:
+                _parse_field(self, node)
+
+    @staticmethod
+    def _get_dir_regex(dir_name):
+        return _ExcludePaths._get_re_dir_regex(re.escape(dir_name))
+
+    @staticmethod
+    def _get_re_dir_regex(re_dir_pattern):
+        return "".join((
+            "^(?:.*/)?",
+            re_dir_pattern,
+            "/?$"
+        ))
+
+    @staticmethod
+    def _get_file_regex(file_name):
+        return _ExcludePaths._get_re_file_regex(re.escape(file_name))
+
+    @staticmethod
+    def _get_re_file_regex(re_file_pattern):
+        return "".join((
+            "^(?:.*/)?",
+            re_file_pattern,
+            "$"
+        ))
+
 # ----- Settings -----------------------
 
 
@@ -206,6 +252,7 @@ class Settings(object):
     performance = _Performance()
     limits = _GlobalLimits()
     _default_limits = _Limits()
+    exclude_paths = _ExcludePaths()
     stored_files = _StoredFiles()
     cipher = _CipherSettings()
     mail_accounts = []
@@ -226,6 +273,8 @@ class Settings(object):
             tag = node.tag
             if tag == "performance":
                 self.performance = _Performance(node)
+            elif tag == "exclude_paths":
+                self.exclude_paths = _ExcludePaths(node)
             elif tag == "limits":
                 self.limits = _GlobalLimits(node)
             elif tag == "default_limits":

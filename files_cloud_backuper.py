@@ -83,7 +83,8 @@ def build_pipeline(files_to_read, settings, session):
 
     Limited_Queue = lambda: Queue.Queue(settings.performance.max_pending_for_processing)
     pipeline \
-        .add(task=FileReader().input_queue(files_to_read), output_queue=Limited_Queue()) \
+        .add(task=FileReader(settings.exclude_paths.path_filter_list).input_queue(files_to_read),
+             output_queue=Limited_Queue()) \
         .add(task=QuotaFilter(global_quota), output_queue=Limited_Queue()) \
         .add(task=AlreadyProcessedFilter() if settings.stored_files.should_check_already_sent else None,
              output_queue=Limited_Queue()) \
