@@ -9,9 +9,9 @@ from database.helpers import get_db_version
 from database.schema import FilesDestinations
 from framework.workflow.Pipeline import Pipeline
 from processing.filesystem.Cleaner import Cleaner
-from processing.filesystem.AlreadyProcessedFilter import AlreadyProcessedFilter
-from processing.filesystem.Quota import Quota
-from processing.filesystem.QuotaFilter import QuotaFilter
+from processing.models.Quota import Quota
+from processing.filters.QuotaFilter import QuotaFilter
+from processing.filters.AlreadyProcessedFilter import AlreadyProcessedFilter
 from processing.transformations.Cipher import Cipher
 from processing.filesystem.Compressor import Compressor
 from processing.filesystem.FileReader import FileReader

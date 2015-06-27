@@ -8,7 +8,7 @@ import struct
 from Crypto.Cipher import AES
 
 from framework.workflow.PipelineTask import PipelineTask
-from processing.filesystem.FileInfo import FileInfo
+from processing.models.FileInfo import FileInfo
 
 
 class Cipher(PipelineTask):
