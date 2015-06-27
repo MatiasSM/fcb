@@ -86,6 +86,11 @@ class _Performance(_PlainNode):
     def __init__(self, root=None):
         self.load(root)
 
+class _GlobalLimits(_PlainNode):
+    max_shared_upload_per_day = _Size("0")
+
+    def __init__(self, root=None):
+        self.load(root)
 
 class _Limits(_PlainNode):
     # recognized fields (0 means, no limit)
@@ -199,7 +204,8 @@ class _ToImage(_PlainNode):
 
 class Settings(object):
     performance = _Performance()
-    _limits = _Limits()
+    limits = _GlobalLimits()
+    _default_limits = _Limits()
     stored_files = _StoredFiles()
     cipher = _CipherSettings()
     mail_accounts = []
@@ -221,7 +227,9 @@ class Settings(object):
             if tag == "performance":
                 self.performance = _Performance(node)
             elif tag == "limits":
-                self._limits = _Limits(node)
+                self.limits = _GlobalLimits(node)
+            elif tag == "default_limits":
+                self._default_limits = _Limits(node)
             elif tag == "stored_files":
                 self.stored_files = _StoredFiles(node)
             elif tag == "to_image":
@@ -242,7 +250,7 @@ class Settings(object):
 
         if ms_node is not None:
             for sub_node in ms_node.iter("account"):
-                self.mail_accounts.append(_MailAccount(sub_node, self._limits))
+                self.mail_accounts.append(_MailAccount(sub_node, self._default_limits))
 
         if dir_dest_node is not None:
-            self.dir_dest = _DirDestination(dir_dest_node, self._limits)
+            self.dir_dest = _DirDestination(dir_dest_node, self._default_limits)

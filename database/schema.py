@@ -102,7 +102,7 @@ class FilesDestinations(Base):
     @classmethod
     def get_bytes_uploaded_in_date(cls,
                                    a_session,
-                                   destinations,
+                                   destinations=None,
                                    date=datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)):
         one_more_day = date + datetime.timedelta(days=1)
 
@@ -113,7 +113,7 @@ class FilesDestinations(Base):
             .join(FilesContainer) \
             .filter(FilesContainer.upload_date >= date,
                     FilesContainer.upload_date < one_more_day,
-                    Destination.destination.in_(destinations))\
+                    Destination.destination.in_(destinations) if destinations is not None and destinations else True)\
             .scalar()
         return 0 if size_sum is None else size_sum
 

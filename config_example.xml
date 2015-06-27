@@ -4,10 +4,14 @@
     </performance>
 
     <limits>
+        <max_shared_upload_per_day>0</max_shared_upload_per_day>
+    </limits>
+
+    <default_limits>
         <max_upload_per_day>0</max_upload_per_day>
         <max_size>0</max_size>
         <max_files_per_container>0</max_files_per_container>
-    </limits>
+    </default_limits>
 
     <stored_files>
         <should_encrypt>1</should_encrypt>

@@ -33,7 +33,7 @@ class PipelineTask(threading.Thread):
             result = self.process_data(data)
             if result is not None and self._output_queue is not None:
                 self.log.debug("New (implicit) output: %s", result)
-                self._output_queue.put(result)
+                self._unsafe_put_in_output(result)
             data = self.get_data_to_process()
         self.on_stopped()
         self.distribute_end_of_processing()
@@ -75,9 +75,12 @@ class PipelineTask(threading.Thread):
         """
         if self._output_queue:
             self.log.debug("New output {}".format(data))
-            self._output_queue.put(data)
+            self._unsafe_put_in_output(data)
         else:
             self.log.debug("No output queue to put data")
+
+    def _unsafe_put_in_output(self, data):
+        self._output_queue.put(data)
 
     def output_queue(self, output_queue):
         self._output_queue = output_queue

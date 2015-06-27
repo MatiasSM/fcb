@@ -6,6 +6,7 @@ import os
 
 from framework.workflow.PipelineTask import PipelineTask
 from processing.filesystem.FileInfo import FileInfo
+from processing.filesystem.Quota import Quota
 from utils.log_helper import get_logger_for, get_logger_module, deep_print
 
 
@@ -81,17 +82,18 @@ class _BlockFragmenter(object):
     """
     Handles the logic to check if/how new content can be fit into a block
     """
-    def __init__(self, sender_spec, should_split_small_files):
+    def __init__(self, sender_spec, should_split_small_files, global_quota):
         self.log = get_logger_for(self)
-        self._max_upload_per_day_in_bytes = sender_spec.restrictions.max_upload_per_day_in_bytes
         self._max_size_in_bytes = sender_spec.restrictions.max_size_in_bytes
-        self._bytes_uploaded_today = sender_spec.bytes_uploaded_today
         self._max_files_per_container = sender_spec.restrictions.max_files_per_container
         self._should_split_small_files = should_split_small_files
+        self._global_quota = global_quota
+        self._specific_quota = Quota(quota_limit=sender_spec.restrictions.max_upload_per_day_in_bytes,
+                                     be_thread_safe=False,  # will only be accessed by this instance
+                                     used_quota=sender_spec.bytes_uploaded_today)
 
     def does_fit_in_todays_share(self, file_info):
-        return (self._max_upload_per_day_in_bytes == 0
-                or file_info.size <= self._max_upload_per_day_in_bytes - self._bytes_uploaded_today)
+        return self._global_quota.fits(file_info) and self._specific_quota.fits(file_info)
 
     def can_add_new_content(self, block, file_info):
         """
@@ -116,8 +118,10 @@ class _BlockFragmenter(object):
         return Spec(block.content_size, self._max_size_in_bytes)
 
     def account_block(self, block):
-        self._bytes_uploaded_today += block.processed_data_file_info.size
-        self.log.debug("Total (pending to be) uploaded today %d bytes", self._bytes_uploaded_today)
+        self._global_quota.account_used(block.processed_data_file_info)
+        self._specific_quota.account_used(block.processed_data_file_info)
+        self.log.debug("Total (pending to be) uploaded today (global: %d, specific: %d) bytes",
+                       self._global_quota.used, self._specific_quota.used)
 
     def has_space_left(self, block):
         return self._max_size_in_bytes == 0 or self._max_size_in_bytes > block.content_size
@@ -128,11 +132,16 @@ class _BlockFragmenter(object):
 
     @property
     def bytes_uploaded_today(self):
-        return self._bytes_uploaded_today
+        return self._specific_quota.used
 
     @property
     def max_upload_per_day_in_bytes(self):
-        return self._max_upload_per_day_in_bytes
+        # the limit will be the min of non zero global and specific quotas
+        if self._global_quota.limit == 0 \
+                or (self._specific_quota.limit != 0 and self._global_quota.limit > self._specific_quota.limit):
+            return self._specific_quota.limit
+        else:
+            return self._global_quota.limit
 
     def _is_small_file(self, file_info):
         """
@@ -146,13 +155,15 @@ class _CompressorJob(object):
                  sender_spec,
                  tmp_file_parts_basepath,
                  should_split_small_files,
-                 new_output_cb):
+                 new_output_cb,
+                 global_quota):
         self._tmp_file_parts_basepath = tmp_file_parts_basepath
         self._new_output_cb = new_output_cb
         self._destinations = sender_spec.destinations
         self._current_block = None
         self._block_fragmenter = _BlockFragmenter(sender_spec=sender_spec,
-                                                  should_split_small_files=should_split_small_files)
+                                                  should_split_small_files=should_split_small_files,
+                                                  global_quota=global_quota)
         self.name = "".join((self.__class__.__name__, '(to ', str(self._destinations), ')'))
         self.log = get_logger_module(self.name)
 
@@ -244,7 +255,7 @@ class _CompressorJob(object):
 class Compressor(PipelineTask):
     restriction_to_job = {}  # keeps a map sender_spec.restrictions -> _CompressorJob
 
-    def __init__(self, fs_settings):
+    def __init__(self, fs_settings, global_quota):
         PipelineTask.__init__(self)
 
         fs_settings = deepcopy(fs_settings)  # because we store some of the info, we need a deep copy
@@ -257,10 +268,12 @@ class Compressor(PipelineTask):
             if restrictions in self.restriction_to_job:
                 self.restriction_to_job[restrictions].add_destinations(sender_spec.destinations)
             else:
-                self.restriction_to_job[restrictions] = _CompressorJob(sender_spec,
-                                                                       fs_settings.tmp_file_parts_basepath,
-                                                                       fs_settings.should_split_small_files,
-                                                                       lambda data: self.new_output(data))
+                self.restriction_to_job[restrictions] = \
+                    _CompressorJob(sender_spec=sender_spec,
+                                   tmp_file_parts_basepath=fs_settings.tmp_file_parts_basepath,
+                                   should_split_small_files=fs_settings.should_split_small_files,
+                                   new_output_cb=lambda data: self.new_output(data),
+                                   global_quota=global_quota)
 
     # override from PipelineTask
     def process_data(self, file_info):

@@ -11,7 +11,7 @@ class AlreadyProcessedFilter(PipelineTask):
 
     # override from PipelineTask
     def process_data(self, file_info):
-        """expects Path_Info"""
+        """expects FileInfo"""
         if self._is_already_processed(file_info):
             self.log.debug("Content file already processed '%s'", str(file_info))
         else:

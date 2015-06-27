@@ -6,9 +6,12 @@ import sys
 
 from database.helpers import get_session
 from database.helpers import get_db_version
+from database.schema import FilesDestinations
 from framework.workflow.Pipeline import Pipeline
 from processing.filesystem.Cleaner import Cleaner
 from processing.filesystem.AlreadyProcessedFilter import AlreadyProcessedFilter
+from processing.filesystem.Quota import Quota
+from processing.filesystem.QuotaFilter import QuotaFilter
 from processing.transformations.Cipher import Cipher
 from processing.filesystem.Compressor import Compressor
 from processing.filesystem.FileReader import FileReader
@@ -70,6 +73,10 @@ def build_pipeline(files_to_read, settings, session):
         stored_files_settings=settings.stored_files,
         db_session=session)
 
+    global_quota = Quota(
+        quota_limit=settings.limits.max_shared_upload_per_day.in_bytes,
+        used_quota=FilesDestinations.get_bytes_uploaded_in_date(session))
+
     # The pipeline goes:
     #    read files -> filter -> compress -> [cipher] -> send -> log -> finish
     pipeline = Pipeline()
@@ -77,9 +84,10 @@ def build_pipeline(files_to_read, settings, session):
     Limited_Queue = lambda: Queue.Queue(settings.performance.max_pending_for_processing)
     pipeline \
         .add(task=FileReader().input_queue(files_to_read), output_queue=Limited_Queue()) \
+        .add(task=QuotaFilter(global_quota), output_queue=Limited_Queue()) \
         .add(task=AlreadyProcessedFilter() if settings.stored_files.should_check_already_sent else None,
              output_queue=Limited_Queue()) \
-        .add(task=Compressor(fs_settings), output_queue=Limited_Queue()) \
+        .add(task=Compressor(fs_settings, global_quota), output_queue=Limited_Queue()) \
         .add_parallel(task_builder=Cipher if settings.stored_files.should_encrypt else None,
                       output_queue=Limited_Queue(), num_of_tasks=settings.cipher.performance.threads) \
         .add(task=ToImage() if settings.to_image.enabled else None, output_queue=Limited_Queue()) \
