@@ -12,6 +12,9 @@ class Pipeline(object):
     log = get_logger_module("Pipeline")
 
     def add(self, task, output_queue):
+        if task is None:
+            return self
+
         task.output_queue(output_queue)
         if self._task_chain:
             self._task_chain[-1].connect_to_output(task)
@@ -20,6 +23,9 @@ class Pipeline(object):
         return self
 
     def add_in_list(self, tasks, output_queue):
+        if tasks is None:
+            return self
+
         for task in tasks:
             self.add(task, output_queue)
         return self
@@ -32,6 +38,9 @@ class Pipeline(object):
         :param output_queue: output queue for the tasks
         :param num_of_tasks: amount of tasks to add
         """
+        if task_builder is None:
+            return self
+
         group = ParallelTaskGroup(output_queue=output_queue)
         group.add_many([task_builder() for _ in itertools.repeat(None, num_of_tasks)])
         return self.add(task=group, output_queue=output_queue)
