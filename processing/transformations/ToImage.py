@@ -3,7 +3,7 @@ import numpy
 import math
 
 from framework.workflow.PipelineTask import PipelineTask
-from processing.filesystem.FileInfo import FileInfo
+from processing.models.FileInfo import FileInfo
 from utils.log_helper import get_logger_module
 
 _log = get_logger_module("ToImage")

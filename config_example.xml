@@ -7,6 +7,16 @@
         <max_shared_upload_per_day>0</max_shared_upload_per_day>
     </limits>
 
+    <exclude_paths>
+        <!--
+        <file_name></file_name>
+        <regex_file_name></regex_file_name>
+        <dir_name></dir_name>
+        <regex_dir_name></regex_dir_name>
+        <regex></regex>
+        -->
+    </exclude_paths>
+
     <default_limits>
         <max_upload_per_day>0</max_upload_per_day>
         <max_size>0</max_size>

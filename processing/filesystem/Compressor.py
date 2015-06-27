@@ -5,8 +5,8 @@ from datetime import datetime
 import os
 
 from framework.workflow.PipelineTask import PipelineTask
-from processing.filesystem.FileInfo import FileInfo
-from processing.filesystem.Quota import Quota
+from processing.models.FileInfo import FileInfo
+from processing.models.Quota import Quota
 from utils.log_helper import get_logger_for, get_logger_module, deep_print
 
 

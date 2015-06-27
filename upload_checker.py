@@ -16,8 +16,9 @@ from sqlalchemy.sql.expression import select
 from database.helpers import get_session
 from database.helpers import get_db_version
 from database.schema import FilesContainer, CheckerState, Destination, FilesDestinations
-from processing.filesystem.FileInfo import FileInfo
+from processing.models.FileInfo import FileInfo
 from utils.log_helper import get_logger_for, get_logger_module
+
 
 # noinspection PyUnresolvedReferences
 import log_configuration
