@@ -81,11 +81,15 @@ def build_pipeline(files_to_read, settings, session):
     #    read files -> filter -> compress -> [cipher] -> send -> log -> finish
     pipeline = Pipeline()
 
+    files_reader = FileReader(settings.exclude_paths.path_filter_list)
     Limited_Queue = lambda: Queue.Queue(settings.performance.max_pending_for_processing)
     pipeline \
-        .add(task=FileReader(settings.exclude_paths.path_filter_list).input_queue(files_to_read),
+        .add(task=files_reader.input_queue(files_to_read),
              output_queue=Limited_Queue()) \
-        .add(task=QuotaFilter(global_quota), output_queue=Limited_Queue()) \
+        .add(task=QuotaFilter(global_quota=global_quota,
+                              stop_on_remaining=settings.limits.stop_on_remaining.in_bytes,
+                              request_processing_stop_cb=lambda: files_reader.request_stop()),
+             output_queue=Limited_Queue()) \
         .add(task=AlreadyProcessedFilter() if settings.stored_files.should_check_already_sent else None,
              output_queue=Limited_Queue()) \
         .add(task=Compressor(fs_settings, global_quota), output_queue=Limited_Queue()) \

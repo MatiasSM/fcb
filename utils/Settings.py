@@ -88,6 +88,7 @@ class _Performance(_PlainNode):
 
 class _GlobalLimits(_PlainNode):
     max_shared_upload_per_day = _Size("0")
+    stop_on_remaining = _Size("0")
 
     def __init__(self, root=None):
         self.load(root)

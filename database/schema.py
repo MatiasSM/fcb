@@ -4,6 +4,7 @@ from sqlalchemy import Column, DateTime, String, Integer, Float, ForeignKey, fun
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql.sqltypes import UnicodeText
 
 from database import settings
 
@@ -28,7 +29,7 @@ class UploadedFile(Base):
     __tablename__ = 'uploaded_files'
     id = Column(Integer, primary_key=True)
     sha1 = Column(String)
-    file_name = Column(String)
+    file_name = Column(UnicodeText)
     fragment_count = Column(Integer)
     upload_date = Column(DateTime, default=datetime.datetime.utcnow())
 
@@ -73,7 +74,7 @@ class FileFragment(Base):
     __tablename__ = 'file_fragments'
     id = Column(Integer, primary_key=True)
     fragment_sha1 = Column(String)  # SHA1 of the fragment file
-    fragment_name = Column(String)  # name of the fragment file
+    fragment_name = Column(UnicodeText)  # name of the fragment file
     fragment_number = Column(Integer)  # ordinal of the fragment
     upload_date = Column(DateTime, default=datetime.datetime.utcnow())  # date when the container file was uploaded
 

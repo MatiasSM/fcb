@@ -47,7 +47,7 @@ class SentLog(PipelineTask):
         except NoResultFound:
             new_instance = UploadedFile(
                 sha1=file_info.sha1,
-                file_name=file_info.path,
+                file_name=file_info.upath,
                 fragment_count=fragment_count
             )
             self._session.add(new_instance)
@@ -90,7 +90,7 @@ class SentLog(PipelineTask):
                 # save a new fragment for the file
                 file_fragment = FileFragment(
                     fragment_sha1=file_info.sha1,
-                    fragment_name=file_info.path,
+                    fragment_name=file_info.upath,
                     fragment_number=file_info.fragment_info.fragment_num
                 )
                 uploaded_file.fragments.append(file_fragment)
