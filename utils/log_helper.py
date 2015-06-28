@@ -48,7 +48,7 @@ def _is_plain_type(instance):
 
 
 def _should_ignore_key(key):
-    return key == "log" or key == "_log" or key == "upath"
+    return key in ("log", "_log", "upath", "_unit_factor")
 
 
 def _should_ignore_value(instance):

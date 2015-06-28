@@ -6,6 +6,7 @@
     <limits>
         <max_shared_upload_per_day>0</max_shared_upload_per_day>
         <stop_on_remaining>0</stop_on_remaining>
+        <max_file_size>0</max_file_size>
     </limits>
 
     <exclude_paths>
@@ -20,7 +21,7 @@
 
     <default_limits>
         <max_upload_per_day>0</max_upload_per_day>
-        <max_size>0</max_size>
+        <max_container_content_size>0</max_container_content_size>
         <max_files_per_container>0</max_files_per_container>
     </default_limits>
 
@@ -44,7 +45,7 @@
         <account>
             <limits>
                 <max_upload_per_day>500M</max_upload_per_day>
-                <max_size>10M</max_size>
+                <max_container_content_size>10M</max_container_content_size>
             </limits>
             <src>
                 <mail>my_mail@some_mail_srv.com</mail>
