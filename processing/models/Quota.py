@@ -30,7 +30,21 @@ class Quota(object):
 
     @property
     def limit(self):
+        """
+        :return: the limit in bytes associated to the instance or
+                 0 if is_infinite() is True
+        """
         return self._limit
+
+    @property
+    def remaining(self):
+        """
+        Note: only meaningful if is_infinite is not True
+        """
+        return max((0, self.limit - self.used))
+
+    def is_infinite(self):
+        return self._limit == 0
 
     def account_used(self, file_info):
         self._lock.acquire()
@@ -47,4 +61,4 @@ class Quota(object):
         self._used += file_info.size
 
     def _unsafe_fits(self, file_info):
-        return self._limit == 0 or (self._limit - self._used >= file_info.size)
+        return self.is_infinite() or (self._limit - self._used >= file_info.size)

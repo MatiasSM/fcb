@@ -5,6 +5,7 @@
 
     <limits>
         <max_shared_upload_per_day>0</max_shared_upload_per_day>
+        <stop_on_remaining>0</stop_on_remaining>
     </limits>
 
     <exclude_paths>

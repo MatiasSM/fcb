@@ -13,6 +13,10 @@ class FileInfo:
         return self._path
 
     @property
+    def upath(self):
+        return self._path.decode("utf-8")
+
+    @property
     def sha1(self):
         if not self._sha1:
             self._sha1 = digest.gen_sha1(self._path)

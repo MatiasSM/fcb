@@ -6,6 +6,7 @@ Release 0.3.0:
     * Adds to image (.png) conversion of containers (binaries)
     * Adds globally defined (optinal) upload limits with pre-filtering (to avoid having to read the files)
     * Adds support for files/dir path exclusion through regexs
+    * Adds logic and setting to stop processing input files when only some bytes remain before reaching the upload limit
 
 Release 0.2.0:
     files_cloud_backuper:

@@ -137,8 +137,8 @@ class _BlockFragmenter(object):
     @property
     def max_upload_per_day_in_bytes(self):
         # the limit will be the min of non zero global and specific quotas
-        if self._global_quota.limit == 0 \
-                or (self._specific_quota.limit != 0 and self._global_quota.limit > self._specific_quota.limit):
+        if self._global_quota.is_infinite() \
+                or (not self._specific_quota.is_infinite() and self._global_quota.limit > self._specific_quota.limit):
             return self._specific_quota.limit
         else:
             return self._global_quota.limit
