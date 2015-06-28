@@ -21,7 +21,7 @@
 
     <default_limits>
         <max_upload_per_day>0</max_upload_per_day>
-        <max_container_content_size>0</max_container_content_size>
+        <max_container_content_size>1G</max_container_content_size>
         <max_files_per_container>0</max_files_per_container>
     </default_limits>
 

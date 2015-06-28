@@ -100,7 +100,7 @@ class _GlobalLimits(_PlainNode):
 class _Limits(_PlainNode):
     # recognized fields (0 means, no limit)
     max_upload_per_day = _Size("0")
-    max_container_content_size = _Size("0")
+    max_container_content_size = _Size("1G")
     max_files_per_container = 0
 
     def __init__(self, root=None):

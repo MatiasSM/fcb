@@ -9,6 +9,7 @@ Release 0.3.0:
     * Adds logic and setting to stop processing input files when only some bytes remain before reaching the upload limit
     * Adds support for filtering files exceeding a size threshold
     * Renames destination.limit.max_size to max_container_content_size
+    * Changes default max_container_content_size from 0 (unlimited) to 1G
 
 Release 0.2.0:
     files_cloud_backuper:
