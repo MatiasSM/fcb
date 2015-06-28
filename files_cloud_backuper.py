@@ -9,6 +9,7 @@ from database.helpers import get_db_version
 from database.schema import FilesDestinations
 from framework.workflow.Pipeline import Pipeline
 from processing.filesystem.Cleaner import Cleaner
+from processing.filters.FileSizeFilter import FileSizeFilter
 from processing.models.Quota import Quota
 from processing.filters.QuotaFilter import QuotaFilter
 from processing.filters.AlreadyProcessedFilter import AlreadyProcessedFilter
@@ -86,6 +87,7 @@ def build_pipeline(files_to_read, settings, session):
     pipeline \
         .add(task=files_reader.input_queue(files_to_read),
              output_queue=Limited_Queue()) \
+        .add(task=FileSizeFilter(settings.limits.max_file_size.in_bytes), output_queue=Limited_Queue()) \
         .add(task=QuotaFilter(global_quota=global_quota,
                               stop_on_remaining=settings.limits.stop_on_remaining.in_bytes,
                               request_processing_stop_cb=lambda: files_reader.request_stop()),

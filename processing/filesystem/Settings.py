@@ -1,19 +1,19 @@
 from copy import deepcopy
-import pprint
+
 from database.schema import FilesDestinations
-from utils.log_helper import get_logger_for, deep_print
+from utils.log_helper import get_logger_for
 
 
 class _SenderRestriction(object):
     def __init__(self, sender_settings):
         self.max_upload_per_day_in_bytes = sender_settings.limits.max_upload_per_day.in_bytes
-        self.max_size_in_bytes = sender_settings.limits.max_size.in_bytes
+        self.max_container_content_size_in_bytes = sender_settings.limits.max_container_content_size.in_bytes
         self.max_files_per_container = sender_settings.limits.max_files_per_container
 
     def __eq__(self, other):
         return other \
                and self.max_upload_per_day_in_bytes == other.max_upload_per_day_in_bytes \
-               and self.max_size_in_bytes == other.max_size_in_bytes \
+               and self.max_container_content_size_in_bytes == other.max_container_content_size_in_bytes \
                and self.max_files_per_container == other.max_files_per_container
 
     def __ne__(self, other):
@@ -21,8 +21,9 @@ class _SenderRestriction(object):
 
     def __hash__(self):
         return hash((self.max_upload_per_day_in_bytes,
-                     self.max_size_in_bytes,
+                     self.max_container_content_size_in_bytes,
                      self.max_files_per_container))
+
 
 class _SenderSpec(object):
     restrictions = None

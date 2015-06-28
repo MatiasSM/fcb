@@ -55,6 +55,7 @@ def _check_required_fields(instance, fields):
         if getattr(instance, field) is None:
             raise Exception("Field {} not set".format(field))
 
+
 # --------------- sections and helpful parsers ---------------
 
 
@@ -86,17 +87,20 @@ class _Performance(_PlainNode):
     def __init__(self, root=None):
         self.load(root)
 
+
 class _GlobalLimits(_PlainNode):
     max_shared_upload_per_day = _Size("0")
     stop_on_remaining = _Size("0")
+    max_file_size = _Size("0")
 
     def __init__(self, root=None):
         self.load(root)
 
+
 class _Limits(_PlainNode):
     # recognized fields (0 means, no limit)
     max_upload_per_day = _Size("0")
-    max_size = _Size("0")
+    max_container_content_size = _Size("0")
     max_files_per_container = 0
 
     def __init__(self, root=None):
@@ -170,6 +174,7 @@ class _MailAccount(object):
     def destinations(self):
         return self.dst_mails
 
+
 class _DirDestination(object):
     limits = None
     path = None
@@ -194,11 +199,13 @@ class _DirDestination(object):
     def destinations(self):
         return [self.path]
 
+
 class _ToImage(_PlainNode):
     enabled = False
 
     def __init__(self, root=None):
         self.load(root)
+
 
 class _ExcludePaths(object):
     path_filter_list = []
@@ -245,6 +252,7 @@ class _ExcludePaths(object):
             re_file_pattern,
             "$"
         ))
+
 
 # ----- Settings -----------------------
 

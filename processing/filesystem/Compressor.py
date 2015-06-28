@@ -82,9 +82,10 @@ class _BlockFragmenter(object):
     """
     Handles the logic to check if/how new content can be fit into a block
     """
+
     def __init__(self, sender_spec, should_split_small_files, global_quota):
         self.log = get_logger_for(self)
-        self._max_size_in_bytes = sender_spec.restrictions.max_size_in_bytes
+        self._max_container_content_size_in_bytes = sender_spec.restrictions.max_container_content_size_in_bytes
         self._max_files_per_container = sender_spec.restrictions.max_files_per_container
         self._should_split_small_files = should_split_small_files
         self._global_quota = global_quota
@@ -107,15 +108,16 @@ class _BlockFragmenter(object):
                      or
                      # check if we can fit some content by splitting the file
                      # Note: if max size was unlimited, does_content_fit would have been True
-                     (block.content_size < self._max_size_in_bytes
+                     (block.content_size < self._max_container_content_size_in_bytes
                       and (self._should_split_small_files or not self._is_small_file(file_info)))))
 
     def get_fragments_spec(self, block):
         class Spec(object):
-            def __init__(self, block_cur_size, max_size):
-                self.first = max_size - block_cur_size
-                self.remaining = max_size
-        return Spec(block.content_size, self._max_size_in_bytes)
+            def __init__(self, block_cur_size, max_container_content_size):
+                self.first = max_container_content_size - block_cur_size
+                self.remaining = max_container_content_size
+
+        return Spec(block.content_size, self._max_container_content_size_in_bytes)
 
     def account_block(self, block):
         self._global_quota.account_used(block.processed_data_file_info)
@@ -124,11 +126,12 @@ class _BlockFragmenter(object):
                        self._global_quota.used, self._specific_quota.used)
 
     def has_space_left(self, block):
-        return self._max_size_in_bytes == 0 or self._max_size_in_bytes > block.content_size
+        return self._max_container_content_size_in_bytes == 0 \
+               or self._max_container_content_size_in_bytes > block.content_size
 
     def does_content_fit(self, file_info, block):
-        return (self._max_size_in_bytes == 0
-                or file_info.size + block.content_size <= self._max_size_in_bytes)
+        return (self._max_container_content_size_in_bytes == 0
+                or file_info.size + block.content_size <= self._max_container_content_size_in_bytes)
 
     @property
     def bytes_uploaded_today(self):
@@ -147,7 +150,8 @@ class _BlockFragmenter(object):
         """
         A file is considered as "small" if its content can fit into a (empty) block
         """
-        return self._max_size_in_bytes != 0 and self._max_size_in_bytes >= file_info.size
+        return self._max_container_content_size_in_bytes != 0 \
+               and self._max_container_content_size_in_bytes >= file_info.size
 
 
 class _CompressorJob(object):
