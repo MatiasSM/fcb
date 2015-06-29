@@ -1,4 +1,5 @@
 from copy import deepcopy
+from database.helpers import get_session
 
 from database.schema import FilesDestinations
 from utils.log_helper import get_logger_for
@@ -30,22 +31,23 @@ class _SenderSpec(object):
     destinations = None
     bytes_uploaded_today = 0
 
-    def __init__(self, sender_settings, db_session):
+    def __init__(self, sender_settings):
         log = get_logger_for(self)
         self.restrictions = _SenderRestriction(sender_settings)
         self.destinations = deepcopy(sender_settings.destinations)
-        self.bytes_uploaded_today = \
-            FilesDestinations.get_bytes_uploaded_in_date(db_session, self.destinations)
+        with get_session() as session:
+            self.bytes_uploaded_today = \
+                FilesDestinations.get_bytes_uploaded_in_date(session, self.destinations)
         log.info("According to the logs, it were already uploaded today %d bytes for destinations %s",
                  self.bytes_uploaded_today,
                  self.destinations)
 
 
 class Settings(object):
-    def __init__(self, sender_settings_list, stored_files_settings, db_session):
+    def __init__(self, sender_settings_list, stored_files_settings):
         self.tmp_file_parts_basepath = stored_files_settings.tmp_file_parts_basepath
         self.should_split_small_files = stored_files_settings.should_split_small_files
         self.sender_specs = []
 
         for sender_settings in sender_settings_list:
-            self.sender_specs.append(_SenderSpec(sender_settings, db_session))
+            self.sender_specs.append(_SenderSpec(sender_settings))

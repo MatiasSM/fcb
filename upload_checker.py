@@ -26,32 +26,34 @@ import log_configuration
 # FIXME optimize
 class CheckHistoryVerifier(object):
     def __init__(self, mail_dst):
-        self._session = get_session()
+        self._session_resource = get_session()
         self._log = get_logger_for(self)
         self._mail_dst = mail_dst
         self._last_checked_date = None
 
     def close(self):
-        if self._session:
-            self._session.commit()
-            self._session.close()
+        if self._session_resource:
+            with self._session_resource as session:
+                session.commit()
+                session.close()
 
     def _get_last_checked_date(self):
         mail_dst = self._mail_dst
         if not self._last_checked_date:
             value = 0.0
-            try:
-                result = self._session \
-                    .query(CheckerState.last_checked_time) \
-                    .join(Destination) \
-                    .filter(Destination.destination == mail_dst) \
-                    .one()
-                value = float(result.last_checked_time)
-            except NoResultFound:  # no last checked entry
-                destination = Destination.get_or_add(self._session, mail_dst)
-                self._session.flush()  # gen id if necessary
-                self._session.add(CheckerState(destinations_id=destination.id, last_checked_time=0))
-            self._last_checked_date = value
+            with self._session_resource as session:
+                try:
+                    result = session \
+                        .query(CheckerState.last_checked_time) \
+                        .join(Destination) \
+                        .filter(Destination.destination == mail_dst) \
+                        .one()
+                    value = float(result.last_checked_time)
+                except NoResultFound:  # no last checked entry
+                    destination = Destination.get_or_add(session, mail_dst)
+                    session.flush()  # gen id if necessary
+                    session.add(CheckerState(destinations_id=destination.id, last_checked_time=0))
+                self._last_checked_date = value
         return self._last_checked_date
 
     def is_already_checked(self, msg_info):
@@ -61,11 +63,12 @@ class CheckHistoryVerifier(object):
             self._log.debug("Need to check for message id, last checked time matches the one of the message")
             # because the resolution of the date may not be enough, we need to check by msg id
             try:
-                self._session \
-                    .query(FilesDestinations) \
-                    .join(Destination) \
-                    .filter(FilesDestinations.verification_info == msg_info.msg_id) \
-                    .one()
+                with self._session_resource as session:
+                    self.session \
+                        .query(FilesDestinations) \
+                        .join(Destination) \
+                        .filter(FilesDestinations.verification_info == msg_info.msg_id) \
+                        .one()
                 return True
             except NoResultFound:
                 return False
@@ -79,29 +82,31 @@ class CheckHistoryVerifier(object):
             This call already executes "update_last_checked_time" so it doesn't need to be called separately
         """
         assert hasattr(msg_info, 'files_containers_id')
-        self._session.execute(
-            update(FilesDestinations)
-            .where(FilesDestinations.file_containers_id == msg_info.files_containers_id)
-            .values(verification_info=msg_info.msg_id)
-        )
+        with self._session_resource as session:
+            session.execute(
+                update(FilesDestinations)
+                .where(FilesDestinations.file_containers_id == msg_info.files_containers_id)
+                .values(verification_info=msg_info.msg_id)
+            )
 
         self.update_last_checked_time(msg_info)
 
     def update_last_checked_time(self, msg_info):
         mail_dst = self._mail_dst
-        self._session.execute(
-            update(CheckerState)
-            .where(and_(CheckerState.last_checked_time < msg_info.msg_date,
-                   CheckerState.destinations_id == select([Destination.id]).
-                   where(Destination.destination == mail_dst).
-                   as_scalar()))
-            .values(last_checked_time=msg_info.msg_date)
-        )
+        with self._session_resource as session:
+            session.execute(
+                update(CheckerState)
+                .where(and_(CheckerState.last_checked_time < msg_info.msg_date,
+                       CheckerState.destinations_id == select([Destination.id]).
+                       where(Destination.destination == mail_dst).
+                       as_scalar()))
+                .values(last_checked_time=msg_info.msg_date)
+            )
 
 
 class Checker(object):
     def __init__(self):
-        self._session = None
+        self._session_resource = None
         self._log = get_logger_for(self)
 
         file_lines = "(^File: .+\\(sha1: .*\\).*\n)+"
@@ -118,9 +123,10 @@ class Checker(object):
         )), re.MULTILINE)
 
     def close(self):
-        if self._session:
-            self._session.commit()
-            self._session.close()
+        if self._session_resource:
+            with self._session_resource as session:
+                session.commit()
+                session.close()
 
     def _is_content_from_fcb(self, content):
         return self.is_content_from_fcb_regex.match(content) is not None
@@ -154,14 +160,15 @@ class Checker(object):
             return filename
 
     def _get_files_container_by_name(self, file_name):
-        if not self._session:
-            self._session = get_session()
+        if not self._session_resource:
+            self._session_resource = get_session()
 
         try:
-            return self._session \
-                .query(FilesContainer) \
-                .filter(FilesContainer.file_name == file_name) \
-                .one()
+            with self._session_resource as session:
+                return session \
+                    .query(FilesContainer) \
+                    .filter(FilesContainer.file_name == file_name) \
+                    .one()
         except NoResultFound:
             return None
 
@@ -368,14 +375,14 @@ if __name__ == '__main__':
 
         conf = Configuration(sys.argv[1])
 
-        session = get_session()
-        db_version = get_db_version(session)
-        if db_version != 3:
-            log.error("Invalid database version (%d). 3 expected", db_version)
-            session.close()
-            exit(1)
+        with get_session() as session:
+            db_version = get_db_version(session)
+            if db_version != 3:
+                log.error("Invalid database version (%d). 3 expected", db_version)
+                session.close()
+                exit(1)
 
-        session.close()
+            session.close()
 
         checker = Checker()
         verifier = Verifier(checker)
