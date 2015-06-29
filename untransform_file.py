@@ -40,12 +40,11 @@ def _get_key_from_db(session, file_path):
     return session.query(FilesContainer.encryption_key).filter(FilesContainer.sha1 == sha1).scalar()
 
 def untransform_from_db(files):
-    session = get_session()
-
-    for file_path in files:
-        cipher_key_getter = lambda: _get_key_from_db(session, file_path)
-        untransform(in_filename=file_path, cipher_key_getter=cipher_key_getter)
-    session.close()
+    with get_session() as session:
+        for file_path in files:
+            cipher_key_getter = lambda: _get_key_from_db(session, file_path)
+            untransform(in_filename=file_path, cipher_key_getter=cipher_key_getter)
+        session.close()
 
 
 def print_usage_and_exit():

@@ -7,7 +7,7 @@ from framework.workflow.PipelineTask import PipelineTask
 
 
 class AlreadyProcessedFilter(PipelineTask):
-    _session = None
+    _session_resource = None
 
     # override from PipelineTask
     def process_data(self, file_info):
@@ -20,22 +20,24 @@ class AlreadyProcessedFilter(PipelineTask):
 
     # override from PipelineTask
     def on_stopped(self):
-        if self._session:
-            self._session.commit()
-            self._session.close()
+        if self._session_resource:
+            with self._session_resource as session:
+                session.commit()
+                session.close()
 
     # override from PipelineTask
     def on_start(self):
-        if not self._session:
-            self._session = get_session()
+        if not self._session_resource:
+            self._session_resource = get_session()
 
     # -------- low visibility methods
     def _is_already_processed(self, file_info):
         try:
-            uploaded_file = self._session \
-                .query(UploadedFile) \
-                .filter(UploadedFile.sha1 == file_info.sha1) \
-                .order_by(UploadedFile.upload_date.desc()).one()
+            with self._session_resource as session:
+                uploaded_file = session \
+                    .query(UploadedFile) \
+                    .filter(UploadedFile.sha1 == file_info.sha1) \
+                    .order_by(UploadedFile.upload_date.desc()).one()
 
             self.log.debug("Found uploaded file by hash: {}".format(uploaded_file))
             # get the uploaded date in local time (FIXME really ugly code)

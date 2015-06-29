@@ -71,8 +71,7 @@ def build_pipeline(files_to_read, settings, session):
 
     fs_settings = FilesystemSettings.Settings(
         sender_settings_list=sender_settings,
-        stored_files_settings=settings.stored_files,
-        db_session=session)
+        stored_files_settings=settings.stored_files)
 
     global_quota = Quota(
         quota_limit=settings.limits.max_shared_upload_per_day.in_bytes,
@@ -118,21 +117,21 @@ if __name__ == '__main__':
 
         settings = Settings(sys.argv[1])
 
-        session = get_session()
-        db_version = get_db_version(session)
-        if db_version != 3:
-            log.error("Invalid database version (%d). 3 expected" % db_version)
+        with get_session() as session:
+            db_version = get_db_version(session)
+            if db_version != 3:
+                log.error("Invalid database version (%d). 3 expected" % db_version)
+                session.close()
+                exit(1)
+
+            files_to_read = Queue.Queue()
+            # load files to read
+            for file_path in sys.argv[2:]:
+                files_to_read.put(file_path)
+
+            pipeline = build_pipeline(files_to_read, settings, session)
+
             session.close()
-            exit(1)
-
-        files_to_read = Queue.Queue()
-        # load files to read
-        for file_path in sys.argv[2:]:
-            files_to_read.put(file_path)
-
-        pipeline = build_pipeline(files_to_read, settings, session)
-
-        session.close()
 
         # create gracefully finalization mechanism
         aborter = ProgramAborter(pipeline)
