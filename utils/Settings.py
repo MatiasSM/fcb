@@ -4,7 +4,7 @@ import re
 import tempfile
 import xml.etree.ElementTree as Etree
 
-from utils.log_helper import get_logger_for
+from utils.log_helper import get_logger_for, deep_print
 
 
 # --- helper functions ------------------------------
@@ -256,6 +256,11 @@ class _ExcludePaths(object):
 
 # ----- Settings -----------------------
 
+class InvalidSettings(Exception):
+    def __init__(self, error_msg="", invalid_setting=None):
+        super(self.__class__, self)\
+            .__init__("".join((error_msg, "" if invalid_setting is None else deep_print(invalid_setting))))
+
 
 class Settings(object):
     performance = _Performance()
@@ -268,6 +273,7 @@ class Settings(object):
     sent_files_log = None
     dir_dest = None
     to_image = _ToImage()
+    add_fake_sender = False
 
     def __init__(self, file_path):
         self._parse(Etree.parse(file_path))
@@ -300,6 +306,8 @@ class Settings(object):
                 ms_node = node  # we keep it until we have processed other tags (we need limits loaded)
             elif tag == "dir_destination":
                 dir_dest_node = node  # we keep it until we have processed other tags (we need limits loaded)
+            elif tag == "fake_sender":
+                self.add_fake_sender = True
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", tag)
 
