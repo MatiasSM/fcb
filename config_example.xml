@@ -61,6 +61,14 @@
         </account>
     </mail_sender>
 
+    <mega_sender>
+        <!-- if not set, will use configuration file as defined by megatools
+        <user></user>
+        <password></password>
+        <dst_path></dst_path>
+        -->
+    </mega_sender>
+
     <dir_destination>
         <path>destination/my_files/</path>
     </dir_destination>

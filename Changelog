@@ -10,6 +10,7 @@ Release 0.3.0:
     * Adds support for filtering files exceeding a size threshold
     * Renames destination.limit.max_size to max_container_content_size
     * Changes default max_container_content_size from 0 (unlimited) to 1G
+    * Adds destination mega.co.nz by means of megatools
 
 Release 0.2.0:
     files_cloud_backuper:

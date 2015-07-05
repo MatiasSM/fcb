@@ -22,6 +22,7 @@ from sending.FakeSender import FakeSender
 from sending.SentLog import SentLog
 from sending.directory.ToDirectorySender import ToDirectorySender
 from sending.mail.MailSender import MailSender
+from sending.mega.MegaSender import MegaSender
 from utils.Settings import Settings, InvalidSettings
 from utils.log_helper import get_logger_module, deep_print
 
@@ -68,6 +69,8 @@ def build_pipeline(files_to_read, settings, session):
     sender_settings = [sender_settings for sender_settings in settings.mail_accounts]
     if settings.dir_dest is not None:
         sender_settings.append(settings.dir_dest)
+    if settings.mega_settings is not None:
+        sender_settings.append(settings.mega_settings)
 
     if not sender_settings:
         raise InvalidSettings("No senders were configured")
@@ -104,6 +107,8 @@ def build_pipeline(files_to_read, settings, session):
                      if settings.mail_accounts else None,
                      output_queue=Limited_Queue()) \
         .add(task=ToDirectorySender(settings.dir_dest.path) if settings.dir_dest is not None else None,
+             output_queue=Limited_Queue()) \
+        .add(task=MegaSender(settings.mega_settings) if settings.mega_settings is not None else None,
              output_queue=Limited_Queue()) \
         .add(task=FakeSender() if settings.add_fake_sender else None, output_queue=Limited_Queue()) \
         .add(task=SentLog(settings.sent_files_log), output_queue=Limited_Queue()) \

@@ -1,0 +1,3 @@
+
+class DestinationInaccessible(Exception):
+    pass
