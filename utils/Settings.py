@@ -200,6 +200,27 @@ class _DirDestination(object):
         return [self.path]
 
 
+class _MegaSenderSettings(_PlainNode):
+    limits = None
+    user = None
+    password = None
+    dst_path = ""
+
+    def __init__(self, root, default_limits):
+        self.limits = deepcopy(default_limits) if default_limits is not None else _Limits()
+        for node in root:
+            tag = node.tag
+            if tag == "limits":
+                self.limits.load(node)
+            else:
+                _parse_field(self, node)
+        self.dst_path = "/".join(("/Root", self.dst_path))  # use Root as base
+
+    @property
+    def destinations(self):
+        return ["mega" if self.user is None else "mega: " + self.user]
+
+
 class _ToImage(_PlainNode):
     enabled = False
 
@@ -253,7 +274,6 @@ class _ExcludePaths(object):
             "$"
         ))
 
-
 # ----- Settings -----------------------
 
 class InvalidSettings(Exception):
@@ -274,6 +294,7 @@ class Settings(object):
     dir_dest = None
     to_image = _ToImage()
     add_fake_sender = False
+    mega_settings = None
 
     def __init__(self, file_path):
         self._parse(Etree.parse(file_path))
@@ -284,6 +305,7 @@ class Settings(object):
         cipher_node = None
         ms_node = None
         dir_dest_node = None
+        mega_dest_node = None
         for node in tree.getroot():
             tag = node.tag
             if tag == "performance":
@@ -308,6 +330,8 @@ class Settings(object):
                 dir_dest_node = node  # we keep it until we have processed other tags (we need limits loaded)
             elif tag == "fake_sender":
                 self.add_fake_sender = True
+            elif tag == "mega_sender":
+                mega_dest_node = node
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", tag)
 
@@ -320,3 +344,6 @@ class Settings(object):
 
         if dir_dest_node is not None:
             self.dir_dest = _DirDestination(dir_dest_node, self._default_limits)
+
+        if mega_dest_node is not None:
+            self.mega_settings = _MegaSenderSettings(mega_dest_node, self._default_limits)
