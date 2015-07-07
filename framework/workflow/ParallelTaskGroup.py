@@ -16,7 +16,7 @@ class ParallelTaskGroup(threading.Thread):
         self.log = get_logger_module(self.name)
         self._tasks = []
         self._input_queue = input_queue
-        self._tasks_input_queue = Queue()
+        self._tasks_input_queue = Queue(1)
         self._output_queue = output_queue
 
     def __str__(self):
