@@ -52,7 +52,7 @@ class AlreadyProcessedFilter(PipelineTask):
                         file_info.path, date_string, len(uploaded_file.fragments), uploaded_file.fragment_count)
                     return False
             self.log.info("File '%s' was already uploaded on '%s' with the name '%s' (sha1 '%s')",
-                          file_info.path, date_string, uploaded_file.file_name, file_info.sha1)
+                          file_info.path, date_string, uploaded_file.file_name, str(file_info.sha1))
             return True
         except NoResultFound:
             self.log.debug("No file found for file info: {}".format(file_info))

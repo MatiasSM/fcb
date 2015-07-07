@@ -1,5 +1,5 @@
 import os
-from subprocess import check_call, CalledProcessError, check_output
+from subprocess32 import check_call, CalledProcessError, check_output
 
 from framework.workflow.PipelineTask import PipelineTask
 from sending.Errors import DestinationInaccessible
@@ -34,7 +34,7 @@ class MegaAccountHandler(object):
         if subdirs:
             command = cls.build_command_argumetns(command_str="megamkdir", settings=settings, extra_args=subdirs)
             log.debug("Executing command: %s", command)
-            check_call(command, stderr=cls.dev_null, stdout=cls.dev_null)
+            check_call(command, stderr=cls.dev_null, stdout=cls.dev_null, start_new_session=True)
 
     @classmethod
     def verify_access(cls, settings):
@@ -42,7 +42,7 @@ class MegaAccountHandler(object):
         # try megadf to check if we can access
         command = cls.build_command_argumetns(command_str="megadf", settings=settings)
         log.debug("Executing command: %s", command)
-        output = check_output(command, stderr=cls.dev_null)
+        output = check_output(command, stderr=cls.dev_null, start_new_session=True)
         if cls.is_output_error(output):
             raise DestinationInaccessible("Failed access. Running '%s' result was '%s'", command, output)
         log.debug("Access verified to destination mega (command: %s)", command)
@@ -84,7 +84,7 @@ class MegaSender(PipelineTask):
         command = self._base_comand + [to_upload]
         self.log.debug("Executing: %s", command)
         try:
-            check_call(args=command)
+            check_call(args=command, start_new_session=True)
 
             if not hasattr(block, 'send_destinations'):  # FIXME remove, duplicated logic
                 block.send_destinations = []

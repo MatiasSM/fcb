@@ -1,6 +1,7 @@
 
 Requires PyCrypto (https://www.dlitz.net/software/pycrypto/) tested on version 2.6
 Requires SQLAlchemy (pip install sqlalchemy)
+Requires subprocess32 (pip install subprocess32)
 
 For destination mega.co.nz requires megatools (https://github.com/megous/megatools)
 
