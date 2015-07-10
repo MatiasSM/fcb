@@ -8,10 +8,8 @@ ch = logging.StreamHandler(sys.stdout)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-'''
 fh = logging.FileHandler('/tmp/fcb_out_exec.log')
 fh.setFormatter(formatter)
 logger.addHandler(fh)
-'''
 
 logger.setLevel(logging.DEBUG)

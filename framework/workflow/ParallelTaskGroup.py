@@ -45,6 +45,7 @@ class ParallelTaskGroup(threading.Thread):
         task.input_queue(self._tasks_input_queue)
         task.output_queue(self._output_queue)
         self._tasks.append(task)
+        self._tasks_input_queue.maxsize = len(self._tasks)
 
     def add_many(self, task_list):
         """
