@@ -59,7 +59,7 @@ class PipelineTask(threading.Thread):
         :param data: to be added to the input queue
         """
         if self._input_queue:
-            self.log.debug("New input {}".format(data))
+            self.log.debug("New input %s (queue: %0.2x)", data, id(self._input_queue))
             self._input_queue.put(data)
         else:
             self.log.debug("No input queue to put data")

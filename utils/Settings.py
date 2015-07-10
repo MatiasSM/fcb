@@ -221,6 +221,16 @@ class _MegaSenderSettings(_PlainNode):
         return ["mega" if self.user is None else "mega: " + self.user]
 
 
+class _SlowSenderSettings(_PlainNode):
+    sleep_time = 5
+
+    def __init__(self, root=None):
+        self.load(root)
+
+    @property
+    def destinations(self):
+        return ["slow_sender"]
+
 class _ToImage(_PlainNode):
     enabled = False
 
@@ -295,6 +305,7 @@ class Settings(object):
     to_image = _ToImage()
     add_fake_sender = False
     mega_settings = None
+    slow_sender = None
 
     def __init__(self, file_path):
         self._parse(Etree.parse(file_path))
@@ -332,6 +343,8 @@ class Settings(object):
                 self.add_fake_sender = True
             elif tag == "mega_sender":
                 mega_dest_node = node
+            elif tag == "slow_sender":
+                self.slow_sender = _SlowSenderSettings(node)
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", tag)
 
