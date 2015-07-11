@@ -106,12 +106,12 @@ def build_pipeline(files_to_read, settings, session):
         .add_parallel(task_builder=Cipher if settings.stored_files.should_encrypt else None,
                       output_queue=One_Item_Queue(), num_of_tasks=settings.cipher.performance.threads) \
         .add(task=ToImage() if settings.to_image.enabled else None, output_queue=One_Item_Queue()) \
+        .add(task=SlowSender(settings.slow_sender) if settings.slow_sender is not None else None,
+             output_queue=One_Item_Queue()) \
         .add_in_list(tasks=[MailSender(sender_conf) for sender_conf in settings.mail_accounts]
                      if settings.mail_accounts else None,
                      output_queue=One_Item_Queue()) \
         .add(task=ToDirectorySender(settings.dir_dest.path) if settings.dir_dest is not None else None,
-             output_queue=One_Item_Queue()) \
-        .add(task=SlowSender(settings.slow_sender) if settings.slow_sender is not None else None,
              output_queue=One_Item_Queue()) \
         .add(task=MegaSender(settings.mega_settings) if settings.mega_settings is not None else None,
              output_queue=One_Item_Queue()) \
@@ -150,6 +150,10 @@ if __name__ == '__main__':
         # create gracefully finalization mechanism
         aborter = ProgramAborter(pipeline)
         signal.signal(signal.SIGINT, signal_handler)
+
+        if settings.debugging.enabled:
+            from utils.debugging import configure_signals
+            configure_signals()
 
         pipeline.start_all()
         log.debug("Waiting until processing finishes")
