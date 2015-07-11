@@ -238,6 +238,13 @@ class _ToImage(_PlainNode):
         self.load(root)
 
 
+class _Debugging(_PlainNode):
+    enabled = False
+
+    def __init__(self, root=None):
+        self.load(root)
+
+
 class _ExcludePaths(object):
     path_filter_list = []
 
@@ -306,6 +313,7 @@ class Settings(object):
     add_fake_sender = False
     mega_settings = None
     slow_sender = None
+    debugging = _Debugging()
 
     def __init__(self, file_path):
         self._parse(Etree.parse(file_path))
@@ -345,6 +353,8 @@ class Settings(object):
                 mega_dest_node = node
             elif tag == "slow_sender":
                 self.slow_sender = _SlowSenderSettings(node)
+            elif tag == "debugging":
+                self.debugging = _Debugging(node)
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", tag)
 
