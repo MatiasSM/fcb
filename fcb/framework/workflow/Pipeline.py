@@ -52,6 +52,10 @@ class Pipeline(object):
         for task in reversed(self._task_chain):
             task.start()
 
+    def request_stop(self):
+        if self._task_chain:
+            self._task_chain[0].request_stop()
+
     def stop_all(self):
         # note we stop according to the pipeline order
         for task in self._task_chain:

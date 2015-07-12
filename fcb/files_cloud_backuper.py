@@ -50,7 +50,7 @@ class ProgramAborter(object):
 
     def abort(self):
         log.info("Abort requested!!!!")
-        self._pipeline.stop_all()
+        self._pipeline.request_stop()
         log.info("Should finish processing soon")
 
 
