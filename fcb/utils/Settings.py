@@ -99,7 +99,7 @@ class _GlobalLimits(object):
     max_shared_upload_per_day = _Size("0")
     stop_on_remaining = _Size("0")
     max_file_size = _Size("0")
-    rate_limits = _RateLimits()
+    rate_limits = None
 
     def __init__(self, root=None):
         if root is not None:

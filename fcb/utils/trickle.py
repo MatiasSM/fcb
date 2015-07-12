@@ -1,8 +1,6 @@
 from copy import deepcopy
 from distutils.spawn import find_executable
 
-from subprocess32 import CalledProcessError
-
 
 class Settings(object):
     _upload_limit = 0
