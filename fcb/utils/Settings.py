@@ -25,6 +25,8 @@ def _value_builder(variable, node):
         return _parse_bool(node.text)
     elif isinstance(variable, _PlainNode):
         return var_type(node)
+    elif isinstance(variable, basestring):
+        return var_type("" if node.text is None else node.text)
     else:
         return var_type(node.text)
 
