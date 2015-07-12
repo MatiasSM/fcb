@@ -146,7 +146,7 @@ class CheckerState(Base):
     last_checked_time = Column(Float)
 
 
-if __name__ == '__main__':
+def main():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
@@ -160,3 +160,6 @@ if __name__ == '__main__':
     session.add(ProgramInformation(name="db_version", value="3"))
 
     session.commit()
+
+if __name__ == '__main__':
+    main()

@@ -8,8 +8,8 @@ from sqlalchemy.sql.expression import exists, and_
 from fcb.database.helpers import get_session
 from fcb.database.schema import FilesDestinations, Destination, FileFragment, FilesContainer, FilesInContainers, \
     UploadedFile
-
 from fcb.utils.log_helper import get_logger_module
+
 
 # noinspection PyUnresolvedReferences
 import fcb.log_configuration
@@ -134,7 +134,7 @@ class Configuration(object):
                 log.warning("Tag '%s' not recognized. Will be ignored.", child.tag)
 
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) < 2:
         log.error("Usage: %s <config_file>", sys.argv[0])
         exit(1)
@@ -153,3 +153,7 @@ if __name__ == '__main__':
         if answer not in "nN":
             print "Unrecognized option '%s'" % answer
         print "Execution aborted"
+
+
+if __name__ == '__main__':
+    main()

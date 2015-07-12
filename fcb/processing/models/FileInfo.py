@@ -1,5 +1,6 @@
-from utils import digest
 import os
+
+from fcb.utils import digest
 
 
 class FileInfo:

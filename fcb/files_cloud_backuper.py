@@ -121,46 +121,46 @@ def build_pipeline(files_to_read, settings, session):
     return pipeline
 
 
-if __name__ == '__main__':
-    def main():
-        global aborter
+def main():
+    global aborter
 
-        if len(sys.argv) < 3:
-            log.error("Usage: %s <config_file> <input path> [<input path> ...]", sys.argv[0])
+    if len(sys.argv) < 3:
+        log.error("Usage: %s <config_file> <input path> [<input path> ...]", sys.argv[0])
+        exit(1)
+
+    settings = Settings(sys.argv[1])
+
+    with get_session() as session:
+        db_version = get_db_version(session)
+        if db_version != 3:
+            log.error("Invalid database version (%d). 3 expected" % db_version)
+            session.close()
             exit(1)
 
-        settings = Settings(sys.argv[1])
+        files_to_read = Queue.Queue()
+        # load files to read
+        for file_path in sys.argv[2:]:
+            files_to_read.put(file_path)
 
-        with get_session() as session:
-            db_version = get_db_version(session)
-            if db_version != 3:
-                log.error("Invalid database version (%d). 3 expected" % db_version)
-                session.close()
-                exit(1)
+        pipeline = build_pipeline(files_to_read, settings, session)
 
-            files_to_read = Queue.Queue()
-            # load files to read
-            for file_path in sys.argv[2:]:
-                files_to_read.put(file_path)
+        session.close()
 
-            pipeline = build_pipeline(files_to_read, settings, session)
+    # create gracefully finalization mechanism
+    aborter = ProgramAborter(pipeline)
+    signal.signal(signal.SIGINT, signal_handler)
 
-            session.close()
+    if settings.debugging.enabled:
+        from fcb.utils.debugging import configure_signals
+        configure_signals()
 
-        # create gracefully finalization mechanism
-        aborter = ProgramAborter(pipeline)
-        signal.signal(signal.SIGINT, signal_handler)
+    pipeline.start_all()
+    log.debug("Waiting until processing finishes")
+    while pipeline.wait_next_to_stop(timeout=1.0):
+        pass
+    log.debug("finished processing")
 
-        if settings.debugging.enabled:
-            from utils.debugging import configure_signals
-            configure_signals()
-
-        pipeline.start_all()
-        log.debug("Waiting until processing finishes")
-        while pipeline.wait_next_to_stop(timeout=1.0):
-            pass
-        log.debug("finished processing")
-
+if __name__ == '__main__':
     try:
         main()
     except InvalidSettings as e:

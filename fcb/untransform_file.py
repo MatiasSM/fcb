@@ -13,6 +13,7 @@ import log_configuration
 
 log = get_logger_module('untransform_file')
 
+
 def decrypt(in_filename, out_filename, cipher_key_getter):
     key = cipher_key_getter()
     if key is None:
@@ -22,8 +23,10 @@ def decrypt(in_filename, out_filename, cipher_key_getter):
     Cipher.decrypt_file(key=key, in_filename=in_filename, out_filename=out_filename)
     log.info("File '%s' decrypted to '%s'." % (in_filename, out_filename))
 
+
 def transform_from_image(in_filename, out_filename):
     ToImage.from_image_to_file(in_filename, out_filename)
+
 
 def untransform(in_filename, cipher_key_getter):
     to_process_filename = in_filename
@@ -35,9 +38,11 @@ def untransform(in_filename, cipher_key_getter):
         dst_filename = to_process_filename[:-len(Cipher.get_extension())]
         decrypt(to_process_filename, dst_filename, cipher_key_getter)
 
+
 def _get_key_from_db(session, file_path):
     sha1 = gen_sha1(file_path)
     return session.query(FilesContainer.encryption_key).filter(FilesContainer.sha1 == sha1).scalar()
+
 
 def untransform_from_db(files):
     with get_session() as session:
@@ -54,7 +59,7 @@ def print_usage_and_exit():
     exit(1)
 
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) < 3 or (len(sys.argv) < 4 and not sys.argv[1] == "-b"):
         print_usage_and_exit()
 
@@ -64,3 +69,6 @@ if __name__ == '__main__':
     else:
         log.debug("Single file mode detected")
         untransform(in_filename=sys.argv[1], cipher_key_getter=lambda: sys.argv[3])
+
+if __name__ == '__main__':
+    main()

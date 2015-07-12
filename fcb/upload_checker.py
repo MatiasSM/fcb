@@ -367,35 +367,36 @@ class Configuration(object):
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", child.tag)
 
-if __name__ == '__main__':
-    def main():
-        if len(sys.argv) < 2:
-            log.error("Usage: %s <config_file>", sys.argv[0])
+
+def main():
+    if len(sys.argv) < 2:
+        log.error("Usage: %s <config_file>", sys.argv[0])
+        exit(1)
+
+    conf = Configuration(sys.argv[1])
+
+    with get_session() as session:
+        db_version = get_db_version(session)
+        if db_version != 3:
+            log.error("Invalid database version (%d). 3 expected", db_version)
+            session.close()
             exit(1)
 
-        conf = Configuration(sys.argv[1])
+        session.close()
 
-        with get_session() as session:
-            db_version = get_db_version(session)
-            if db_version != 3:
-                log.error("Invalid database version (%d). 3 expected", db_version)
-                session.close()
-                exit(1)
+    checker = Checker()
+    verifier = Verifier(checker)
 
-            session.close()
+    def signal_handler(signal, frame):
+        print "Abort signal received!!!!"
+        verifier.stop()
 
-        checker = Checker()
-        verifier = Verifier(checker)
+    signal.signal(signal.SIGINT, signal_handler)
 
-        def signal_handler(signal, frame):
-            print "Abort signal received!!!!"
-            verifier.stop()
+    for mail_conf in conf.mail_confs:
+        verifier.verify(mail_conf)
 
-        signal.signal(signal.SIGINT, signal_handler)
+    checker.close()
 
-        for mail_conf in conf.mail_confs:
-            verifier.verify(mail_conf)
-
-        checker.close()
-
+if __name__ == '__main__':
     main()
