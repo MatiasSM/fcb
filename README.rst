@@ -14,6 +14,7 @@ Requirements
 - Requires dateutil (pip install python-dateutil) tested on version 2.3
 - Requires numpy (apt-get install python-numpy) tested on version 1.8.2
 - For destination mega.co.nz requires megatools ( https://github.com/megous/megatools ) tested on version 1.9.95
+- For rate limits requires trickle (apt-get install trickle)
 
 More Information
 ================
