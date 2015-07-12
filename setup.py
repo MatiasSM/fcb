@@ -34,7 +34,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'fcb-upload = fcb.files_cloud_backuper:main',
+            'fcb-upload = fcb.fcb_launcher:main',
+            'fcb-direct-upload = fcb.files_cloud_backuper:main',
             'fcb-check = fcb.upload_checker:main',
             'fcb-untransform = fcb.untransform_file:main',
             'fcb-cleanup = fcb.db_cleanup:main',

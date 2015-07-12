@@ -61,7 +61,7 @@ class MegaAccountHandler(object):
 
 
 class MegaSender(PipelineTask):
-    def __init__(self, settings):
+    def __init__(self, settings, rate_limiter=None):
         PipelineTask.__init__(self)
         dst_dir_path = MegaAccountHandler.to_absoulte_dst_path(settings)
         self._base_comand = \
@@ -70,6 +70,8 @@ class MegaSender(PipelineTask):
                                                        extra_args=["--no-progress", "--path", dst_dir_path])
         self._destination_name = settings.destinations[0]
         self._prepare_service(settings)
+        self._limited_cmd = (lambda args: args) if rate_limiter is None else \
+            (lambda args: rate_limiter.wrap_call(args))
 
     # override from PipelineTask
     def process_data(self, block):
@@ -81,7 +83,7 @@ class MegaSender(PipelineTask):
 
         to_upload = block.latest_file_info.path
         self.log.info("Starting upload of '%s'", to_upload)
-        command = self._base_comand + [to_upload]
+        command = self._limited_cmd(self._base_comand + [to_upload])
         self.log.debug("Executing: %s", command)
         try:
             check_call(args=command, start_new_session=True)

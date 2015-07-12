@@ -88,13 +88,27 @@ class _Performance(_PlainNode):
         self.load(root)
 
 
-class _GlobalLimits(_PlainNode):
-    max_shared_upload_per_day = _Size("0")
-    stop_on_remaining = _Size("0")
-    max_file_size = _Size("0")
+class _RateLimits(_PlainNode):
+    up_kbytes_sec = None
 
     def __init__(self, root=None):
         self.load(root)
+
+
+class _GlobalLimits(object):
+    max_shared_upload_per_day = _Size("0")
+    stop_on_remaining = _Size("0")
+    max_file_size = _Size("0")
+    rate_limits = None
+
+    def __init__(self, root=None):
+        if root is not None:
+            for node in root:
+                tag = node.tag
+                if tag == "rate_limits":
+                    self.rate_limits = _RateLimits(node)
+                else:
+                    _parse_field(self, node)
 
 
 class _Limits(_PlainNode):
@@ -231,6 +245,7 @@ class _SlowSenderSettings(_PlainNode):
     def destinations(self):
         return ["slow_sender"]
 
+
 class _ToImage(_PlainNode):
     enabled = False
 
@@ -292,6 +307,7 @@ class _ExcludePaths(object):
         ))
 
 # ----- Settings -----------------------
+
 
 class InvalidSettings(Exception):
     def __init__(self, error_msg="", invalid_setting=None):

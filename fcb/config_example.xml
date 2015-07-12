@@ -7,6 +7,9 @@
         <max_shared_upload_per_day>0</max_shared_upload_per_day>
         <stop_on_remaining>0</stop_on_remaining>
         <max_file_size>0</max_file_size>
+        <rate_limits>
+            <up_kbytes_sec>0</up_kbytes_sec>
+        </rate_limits>
     </limits>
 
     <exclude_paths>

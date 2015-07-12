@@ -24,6 +24,7 @@ from fcb.sending.debug.SlowSender import SlowSender
 from fcb.sending.directory.ToDirectorySender import ToDirectorySender
 from fcb.sending.mail.MailSender import MailSender
 from fcb.sending.mega.MegaSender import MegaSender
+from fcb.utils import trickle
 from fcb.utils.Settings import Settings, InvalidSettings
 from fcb.utils.log_helper import get_logger_module, deep_print
 
@@ -89,6 +90,9 @@ def build_pipeline(files_to_read, settings, session):
     #    read files -> filter -> compress -> [cipher] -> send -> log -> finish
     pipeline = Pipeline()
 
+    rate_limiter = None
+    if settings.limits.rate_limits is not None:
+        rate_limiter = trickle.TrickleBwShaper(trickle.Settings(settings.limits.rate_limits))
     files_reader = FileReader(settings.exclude_paths.path_filter_list)
     Limited_Queue = lambda: Queue.Queue(settings.performance.max_pending_for_processing)
     One_Item_Queue = lambda: Queue.Queue(1)
@@ -113,7 +117,7 @@ def build_pipeline(files_to_read, settings, session):
                      output_queue=One_Item_Queue()) \
         .add(task=ToDirectorySender(settings.dir_dest.path) if settings.dir_dest is not None else None,
              output_queue=One_Item_Queue()) \
-        .add(task=MegaSender(settings.mega_settings) if settings.mega_settings is not None else None,
+        .add(task=MegaSender(settings.mega_settings, rate_limiter) if settings.mega_settings is not None else None,
              output_queue=One_Item_Queue()) \
         .add(task=FakeSender() if settings.add_fake_sender else None, output_queue=One_Item_Queue()) \
         .add(task=SentLog(settings.sent_files_log), output_queue=One_Item_Queue()) \
