@@ -15,7 +15,7 @@ class SentLog(PipelineTask):
     # override from PipelineTask
     def process_data(self, block):
         """expects Block from Compressor"""
-        if hasattr(block, 'send_destinations'):
+        if hasattr(block, 'send_destinations') and block.send_destinations:
             self._log_in_db(block)
             if self._sent_log_file:
                 self._log_in_sent_log(block)

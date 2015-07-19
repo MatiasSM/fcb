@@ -8,34 +8,23 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
+from fcb.framework.workflow.SenderTask import SenderTask, SendingError
 
-from fcb.framework.workflow.PipelineTask import PipelineTask
 
-
-class MailSender(PipelineTask):
+class MailSender(SenderTask):
     def __init__(self, mail_conf):
-        PipelineTask.__init__(self)
+        SenderTask.__init__(self)
         self._mail_conf = deepcopy(mail_conf)
 
-    # override from PipelineTask
-    def process_data(self, block):
-        """
-        Note: Expects Compressor Block like objects
-        """
-        ''' FIXME currently we return block whether it was correctly processed or not because MailSenders are chained
-            and not doing that would mean other wouldn't be able to try.'''
-        if not set(self._mail_conf.dst_mails).issubset(block.destinations):
-            self.log.debug("Block not for this mail destination %s", self._mail_conf.dst_mails)
-            return block
+    def do_send(self, block):
+        sending_succedded = self._send_mail(subject=block.latest_file_info.basename,
+                                            text=self._gen_mail_content(block),
+                                            files=[block.latest_file_info.path])
+        if not sending_succedded:
+            raise SendingError()
 
-        if self._send_mail(subject=block.latest_file_info.basename,
-                           text=self._gen_mail_content(block),
-                           files=[block.latest_file_info.path]):
-            if not hasattr(block, 'send_destinations'):
-                block.send_destinations = []
-            block.send_destinations.extend(self._mail_conf.dst_mails)
-        return block
-        # return None
+    def destinations(self):
+        return self._mail_conf.dst_mails
 
     @staticmethod
     def _gen_file_info(file_info):
@@ -85,12 +74,15 @@ class MailSender(PipelineTask):
                     smtp.login(self._mail_conf.src.user, self._mail_conf.src.password)
                 smtp.sendmail(send_from, send_to, msg.as_string())
                 sent = True
-            except Exception, e:
-                self.log.error("Failed to send '%s' to '%s' try %d of %d. %sError: %s",
-                               str(files), str(send_to), try_num + 1, self._mail_conf.retries + 1,
-                               ("Will retry in %d seconds. " % self._mail_conf.time_between_retries
-                                if try_num < self._mail_conf.retries else ""),
-                               str(e))
+            except Exception:
+                self.log.exception(
+                    "Failed to send '%s' to '%s' try %d of %d. %s",
+                    str(files),
+                    str(send_to),
+                    try_num + 1,
+                    self._mail_conf.retries + 1,
+                    ("Will retry in %d seconds. " % self._mail_conf.time_between_retries
+                     if try_num < self._mail_conf.retries else ""))
                 time.sleep(self._mail_conf.time_between_retries)
             if smtp:
                 smtp.close()
