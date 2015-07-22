@@ -25,7 +25,7 @@ class FileReader(PipelineTask):
             elif os.path.isfile(path):
                 self.new_output(FileInfo(path))
             else:
-                raise ValueError("The path '%s' is not a file or directory", path)
+                raise ValueError("The path '{}' is not a file or directory".format(path))
             self.log.debug("Path '%s' read", path)
 
         # if no more information to process, request stop

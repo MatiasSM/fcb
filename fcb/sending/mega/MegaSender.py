@@ -1,6 +1,6 @@
 import os
 
-from subprocess32 import CalledProcessError, check_output
+from subprocess32 import CalledProcessError, check_output, Popen, PIPE, STDOUT
 
 from fcb.framework.workflow.SenderTask import SenderTask, SendingError
 from fcb.sending.Errors import DestinationInaccessible
@@ -35,10 +35,7 @@ class MegaAccountHandler(object):
         if subdirs:
             command = cls.build_command_argumetns(command_str="megamkdir", settings=settings, extra_args=subdirs)
             log.debug("Executing command: %s", command)
-            output = check_output(command, stderr=cls.dev_null, start_new_session=True)
-            if cls.is_output_error(output):
-                # needs output parsing since megatools not always return a reasonable code
-                raise CalledProcessError("Failed creating directory. Running '%s' result was '%s'", command, output)
+            cls.check_call(command)
 
     @classmethod
     def verify_access(cls, settings):
@@ -46,9 +43,11 @@ class MegaAccountHandler(object):
         # try megadf to check if we can access
         command = cls.build_command_argumetns(command_str="megadf", settings=settings)
         log.debug("Executing command: %s", command)
-        output = check_output(command, stderr=cls.dev_null, start_new_session=True)
-        if cls.is_output_error(output):
-            raise DestinationInaccessible("Failed access. Running '%s' result was '%s'", command, output)
+
+        try:
+            cls.check_call(command)
+        except CalledProcessError as e:
+            raise DestinationInaccessible("Failed access. Running '%s' result was '%s'", command, e.output)
         log.debug("Access verified to destination mega (command: %s)", command)
 
     @staticmethod
@@ -62,6 +61,19 @@ class MegaAccountHandler(object):
     @staticmethod
     def is_output_error(output_str):
         return output_str.startswith("ERROR:")
+
+    @staticmethod
+    def check_call(command):
+        process = Popen(
+            command,
+            stdout=PIPE,
+            stderr=STDOUT,
+            start_new_session=True
+        )
+        process_output, _ = process.communicate()
+        for line in process_output.split("\n"):
+            if MegaAccountHandler.is_output_error(line):
+                raise CalledProcessError(1, command, process_output)
 
 
 class MegaSender(SenderTask):
@@ -83,10 +95,7 @@ class MegaSender(SenderTask):
         command = self._limited_cmd(self._base_comand + [to_upload])
         self.log.debug("Executing: %s", command)
         try:
-            output = check_output(args=command, start_new_session=True)
-            if MegaAccountHandler.is_output_error(output):
-                # needs output parsing since megatools not always return a reasonable code
-                raise CalledProcessError("Failed. Running '%s' result was '%s'", command, output)
+            MegaAccountHandler.check_call(command)
         except CalledProcessError as e:
             self.log.error("Upload of '%s' failed: %s", to_upload, e)
             raise SendingError(e)
