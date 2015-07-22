@@ -14,6 +14,8 @@ class Block(object):
     def __init__(self, destinations):
         self.log = get_logger_for(self)
         self.destinations = destinations
+        self.send_destinations = []
+        self.destinations_verif_data = {}
 
         self._content_size = 0
         self._content_file_infos = []

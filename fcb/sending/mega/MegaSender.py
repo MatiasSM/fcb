@@ -1,7 +1,8 @@
 import os
-from subprocess32 import check_call, CalledProcessError, check_output
 
-from fcb.framework.workflow.PipelineTask import PipelineTask
+from subprocess32 import CalledProcessError, check_output, Popen, PIPE, STDOUT
+
+from fcb.framework.workflow.SenderTask import SenderTask, SendingError
 from fcb.sending.Errors import DestinationInaccessible
 from fcb.utils.log_helper import get_logger_module
 
@@ -34,7 +35,7 @@ class MegaAccountHandler(object):
         if subdirs:
             command = cls.build_command_argumetns(command_str="megamkdir", settings=settings, extra_args=subdirs)
             log.debug("Executing command: %s", command)
-            check_call(command, stderr=cls.dev_null, stdout=cls.dev_null, start_new_session=True)
+            cls.check_call(command)
 
     @classmethod
     def verify_access(cls, settings):
@@ -42,9 +43,11 @@ class MegaAccountHandler(object):
         # try megadf to check if we can access
         command = cls.build_command_argumetns(command_str="megadf", settings=settings)
         log.debug("Executing command: %s", command)
-        output = check_output(command, stderr=cls.dev_null, start_new_session=True)
-        if cls.is_output_error(output):
-            raise DestinationInaccessible("Failed access. Running '%s' result was '%s'", command, output)
+
+        try:
+            cls.check_call(command)
+        except CalledProcessError as e:
+            raise DestinationInaccessible("Failed access. Running '%s' result was '%s'", command, e.output)
         log.debug("Access verified to destination mega (command: %s)", command)
 
     @staticmethod
@@ -59,10 +62,23 @@ class MegaAccountHandler(object):
     def is_output_error(output_str):
         return output_str.startswith("ERROR:")
 
+    @staticmethod
+    def check_call(command):
+        process = Popen(
+            command,
+            stdout=PIPE,
+            stderr=STDOUT,
+            start_new_session=True
+        )
+        process_output, _ = process.communicate()
+        for line in process_output.split("\n"):
+            if MegaAccountHandler.is_output_error(line):
+                raise CalledProcessError(1, command, process_output)
 
-class MegaSender(PipelineTask):
+
+class MegaSender(SenderTask):
     def __init__(self, settings, rate_limiter=None):
-        PipelineTask.__init__(self)
+        SenderTask.__init__(self)
         dst_dir_path = MegaAccountHandler.to_absoulte_dst_path(settings)
         self._base_comand = \
             MegaAccountHandler.build_command_argumetns(command_str="megaput",
@@ -73,28 +89,19 @@ class MegaSender(PipelineTask):
         self._limited_cmd = (lambda args: args) if rate_limiter is None else \
             (lambda args: rate_limiter.wrap_call(args))
 
-    # override from PipelineTask
-    def process_data(self, block):
-        ''' FIXME currently we return block whether it was correctly processed or not because other senders are chained
-            and not doing that would mean other wouldn't be able to try.'''
-        if self._destination_name not in block.destinations:
-            self.log.debug("Block not for this destination %s", self._destination_name)
-            return block
-
+    def do_send(self, block):
         to_upload = block.latest_file_info.path
         self.log.info("Starting upload of '%s'", to_upload)
         command = self._limited_cmd(self._base_comand + [to_upload])
         self.log.debug("Executing: %s", command)
         try:
-            check_call(args=command, start_new_session=True)
-
-            if not hasattr(block, 'send_destinations'):  # FIXME remove, duplicated logic
-                block.send_destinations = []
-            block.send_destinations.append(self._destination_name)
+            MegaAccountHandler.check_call(command)
         except CalledProcessError as e:
             self.log.error("Upload of '%s' failed: %s", to_upload, e)
+            raise SendingError(e)
 
-        return block
+    def destinations(self):
+        return [self._destination_name]
 
     @staticmethod
     def _prepare_service(settings):
