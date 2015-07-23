@@ -49,4 +49,4 @@ class TrickleBwShaper(object):
         if isinstance(call_cmd, basestring):  # FIXME python 3 unsafe
             call_cmd = [call_cmd]
 
-        return [self._trickle_cmd] + self._settings.to_argument_list() + list(call_cmd)
+        return [self._trickle_cmd, "-s"] + self._settings.to_argument_list() + list(call_cmd)
