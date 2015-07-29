@@ -1,6 +1,6 @@
 import os
 
-from subprocess32 import CalledProcessError, check_output, Popen, PIPE, STDOUT
+from subprocess32 import CalledProcessError, check_output, Popen, PIPE, STDOUT, call
 
 from fcb.framework.workflow.SenderTask import SenderTask, SendingError
 from fcb.sending.Errors import DestinationInaccessible
@@ -35,7 +35,7 @@ class MegaAccountHandler(object):
         if subdirs:
             command = cls.build_command_argumetns(command_str="megamkdir", settings=settings, extra_args=subdirs)
             log.debug("Executing command: %s", command)
-            cls.check_call(command)
+            call(command, start_new_session=True)
 
     @classmethod
     def verify_access(cls, settings):
