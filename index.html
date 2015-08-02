@@ -4,32 +4,40 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title>Fcb by MatiasSM</title>
-
     <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/github-light.css">
-    <script src="javascripts/scale.fix.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="stylesheets/github-dark.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
     <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
   </head>
   <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/MatiasSM/fcb">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/MatiasSM/fcb/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/MatiasSM/fcb/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
     <div class="wrapper">
-      <header>
-        <h1 class="header">Fcb</h1>
-        <p class="header">Files Cloud Backuper (FCB) allows you to easily upload files to a cloud storage of your preference. </p>
 
-        <ul>
-          <li class="download"><a class="buttons" href="https://github.com/MatiasSM/fcb/zipball/master">Download ZIP</a></li>
-          <li class="download"><a class="buttons" href="https://github.com/MatiasSM/fcb/tarball/master">Download TAR</a></li>
-          <li><a class="buttons github" href="https://github.com/MatiasSM/fcb">View On GitHub</a></li>
-        </ul>
-
-        <p class="header">This project is maintained by <a class="header name" href="https://github.com/MatiasSM">MatiasSM</a></p>
-
-
-      </header>
       <section>
+        <div id="title">
+          <h1>Fcb</h1>
+          <p>Files Cloud Backuper (FCB) allows you to easily upload files to a cloud storage of your preference. </p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/MatiasSM">MatiasSM</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
         <h3>
 <a id="how-do-i-upload-a-directory-with-fcb" class="anchor" href="#how-do-i-upload-a-directory-with-fcb" aria-hidden="true"><span class="octicon octicon-link"></span></a>How do I upload a directory with FCB?</h3>
 
@@ -41,23 +49,74 @@
 <h3>
 <a id="installing" class="anchor" href="#installing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing</h3>
 
-<p><strong>TODO</strong></p>
+<pre><code>pip install Files_Cloud_Backuper
+</code></pre>
+
+<p><strong>Important</strong>: for Mega.co.nz you also need to install <a href="https://github.com/megous/megatools">megatools</a></p>
+
+<p>To create the database which will hold the registry of files stored, execute:
+    fcb-createdb</p>
+
+<p>This will create a <code>data.db</code> which you must have in the local directory every time you execute <code>fcb-upload</code></p>
 
 <h3>
 <a id="configuring" class="anchor" href="#configuring" aria-hidden="true"><span class="octicon octicon-link"></span></a>Configuring</h3>
 
-<p><strong>TODO</strong></p>
+<p>FCB requires information about the cloud service(s) which will be used. [1]</p>
+
+<p>Current version supports any POP3 mail account and Mega.co.nz. [1]</p>
+
+<p>[1] For more information checkout the <a href="https://github.com/MatiasSM/fcb/wiki">wiki</a></p>
+
+<h4>
+<a id="megaconz-destination" class="anchor" href="#megaconz-destination" aria-hidden="true"><span class="octicon octicon-link"></span></a>Mega.co.nz destination</h4>
+
+<p>The minimal [2] required setting for backuping to a Mega.co.nz account is:</p>
+
+<div class="highlight highlight-xml"><pre>&lt;<span class="pl-ent">mega_sender</span>&gt;
+&lt;/<span class="pl-ent">mega_sender</span>&gt;</pre></div>
+
+<p>This will use your <a href="https://github.com/megous/megatools">megatools</a> settings to connect to the service. </p>
+
+<p>[2] Minimal but not necessarily recommended. Checkout the <a href="https://github.com/MatiasSM/fcb/wiki">wiki</a>.</p>
+
+<h4>
+<a id="pop3-mail-destination" class="anchor" href="#pop3-mail-destination" aria-hidden="true"><span class="octicon octicon-link"></span></a>POP3 mail destination</h4>
+
+<p>The minimal required setting for backuping to a POP3 mail is:</p>
+
+<div class="highlight highlight-xml"><pre>&lt;<span class="pl-ent">configuration</span>&gt;
+    &lt;<span class="pl-ent">mail_sender</span>&gt;
+        &lt;<span class="pl-ent">account</span>&gt;
+            &lt;<span class="pl-ent">limits</span>&gt;
+                &lt;<span class="pl-ent">max_container_content_size</span>&gt;10M&lt;/<span class="pl-ent">max_container_content_size</span>&gt;
+            &lt;/<span class="pl-ent">limits</span>&gt;
+            &lt;<span class="pl-ent">src</span>&gt;
+                &lt;<span class="pl-ent">mail</span>&gt;my_mail@some_mail_srv.com&lt;/<span class="pl-ent">mail</span>&gt;
+                &lt;<span class="pl-ent">user</span>&gt;my_mail_usr&lt;/<span class="pl-ent">user</span>&gt;
+                &lt;<span class="pl-ent">password</span>&gt;my_mail_pass&lt;/<span class="pl-ent">password</span>&gt;
+                &lt;<span class="pl-ent">server</span>&gt;smtp.mail.some_mail_srv.com&lt;/<span class="pl-ent">server</span>&gt;
+                &lt;<span class="pl-ent">use_ssl</span>&gt;1&lt;/<span class="pl-ent">use_ssl</span>&gt;
+            &lt;/<span class="pl-ent">src</span>&gt;
+            &lt;<span class="pl-ent">dst_mail</span>&gt;my_cloud_storage@some_mail_srv.com&lt;/<span class="pl-ent">dst_mail</span>&gt;
+        &lt;/<span class="pl-ent">account</span>&gt;
+    &lt;/<span class="pl-ent">mail_sender</span>&gt;
+&lt;/<span class="pl-ent">configuration</span>&gt;</pre></div>
+
+<p>All the settings in <code>src</code> are the <strong>sending</strong> information (same settings that would need to be configured for a mail sender client). </p>
+
+<p>The <code>dst_mail</code>is the mail address which will store the backups (in form of attachments).</p>
+
+<p><code>max_container_content_size</code> is not strictly required, but in general mail servers have limits in mail attachments sizes, and this is the way of defining the limit for FCB (<strong>Important</strong> check the <a href="https://github.com/MatiasSM/fcb/wiki">wiki</a> for further comments)</p>
 
 <h3>
 <a id="contribute" class="anchor" href="#contribute" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contribute</h3>
 
 <p><strong>TODO</strong></p>
       </section>
-      <footer>
-        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
-      </footer>
+
     </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->
-		
+    
   </body>
 </html>
