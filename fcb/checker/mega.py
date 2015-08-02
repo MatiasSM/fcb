@@ -78,11 +78,8 @@ class Verifier(object):
         ext_res_handler = _ExternalResourcesHandler(mega_dst=mega_conf.user)
         db_list = set((DbEntry(db_entry) for db_entry in ext_res_handler.get_unverified_list_from_db()))
         if db_list:
-            print "DB: ", db_list
             uploaded_file_list = set(ext_res_handler.get_unverified_list_from_mega(mega_conf))
-            print "MEGA: ", uploaded_file_list
             db_list.intersection_update(uploaded_file_list)
-            print [str(entry) for entry in db_list]  # TODO BORRAME
             if db_list:
                 ext_res_handler.set_verified([item.db_entry.file_containers_id for item in db_list])
         ext_res_handler.close()
