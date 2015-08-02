@@ -70,6 +70,7 @@
         <password></password>
         <dst_path></dst_path>
         -->
+        <verify_access>False</verify_access>
     </mega_sender>
 
     <dir_destination>
