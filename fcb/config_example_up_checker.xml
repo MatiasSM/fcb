@@ -1,7 +1,15 @@
 <configuration>
-	<mail_account>
-       <user>my_mail_usr</user>
-       <pass>my_mail_pass</pass>
-       <pop_server>smtp.mail.some_mail_srv.com</pop_server>
-	</mail_account>
+    <mail_account>
+        <user>my_mail_usr</user>
+        <password>my_mail_pass</password>
+        <pop_server>smtp.mail.some_mail_srv.com</pop_server>
+    </mail_account>
+
+    <mega_sender>
+        <!-- if not set, will use configuration file as defined by megatools
+        <user></user>
+        <password></password>
+        <dst_path></dst_path>
+        -->
+    </mega_sender>
 </configuration>

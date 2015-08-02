@@ -17,12 +17,16 @@ class _LockedSession(object):
     """
     def __init__(self):
         self._lock = threading.RLock()
+        self._cur_session = None
 
     def __enter__(self):
         self._lock.acquire()
-        return _Session()
+        self._cur_session = _Session()
+        return self._cur_session
 
     def __exit__(self, *_):
+        self._cur_session.commit()
+        self._cur_session.close()
         self._lock.release()
 
 

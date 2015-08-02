@@ -221,6 +221,7 @@ class _MegaSenderSettings(_PlainNode):
     user = None
     password = None
     dst_path = ""
+    verify_access = False
 
     def __init__(self, root, default_limits):
         self.limits = deepcopy(default_limits) if default_limits is not None else _Limits()
