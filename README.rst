@@ -19,5 +19,5 @@ Requirements
 More Information
 ================
 For more information check the webpage of the project:
-https://github.com/MatiasSM/fcb
+http://matiassm.github.io/fcb
 
