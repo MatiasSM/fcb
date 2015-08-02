@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='Files Cloud Backuper',
+    name='Files_Cloud_Backuper',
 
-    version='0.3.0',
+    version='0.3.1',
 
     packages=find_packages(),
 

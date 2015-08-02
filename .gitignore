@@ -2,3 +2,5 @@
 *.pyc
 *.log
 Files_Cloud_Backuper.egg-info
+build
+dist
