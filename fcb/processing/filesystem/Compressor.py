@@ -4,6 +4,9 @@ import tempfile
 from datetime import datetime
 import os
 
+from circuits import handler, Worker, task
+
+from fcb.framework import events
 from fcb.framework.workflow.PipelineTask import PipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 from fcb.processing.models.Quota import Quota
@@ -259,11 +262,10 @@ class _CompressorJob(object):
 
 
 class Compressor(PipelineTask):
+    _worker = Worker(channel="Compressor")
     restriction_to_job = {}  # keeps a map sender_spec.restrictions -> _CompressorJob
 
-    def __init__(self, fs_settings, global_quota):
-        PipelineTask.__init__(self)
-
+    def do_init(self, fs_settings, global_quota):
         fs_settings = deepcopy(fs_settings)  # because we store some of the info, we need a deep copy
         '''
         If the same restrictions are applied for many destinations, we use the same job to avoid processing
@@ -278,16 +280,16 @@ class Compressor(PipelineTask):
                     _CompressorJob(sender_spec=sender_spec,
                                    tmp_file_parts_basepath=fs_settings.tmp_file_parts_basepath,
                                    should_split_small_files=fs_settings.should_split_small_files,
-                                   new_output_cb=lambda data: self.new_output(data),
+                                   new_output_cb=lambda data: self.hand_on_to_next_task(data),
                                    global_quota=global_quota)
 
     # override from PipelineTask
     def process_data(self, file_info):
         for job in self.restriction_to_job.values():
             self.log.debug("Processing file by: {}".format(job.name))
-            job.process_data(file_info)
+            self.fire(task(lambda: job.process_data(file_info)), self._worker)
 
-    # override from PipelineTask
-    def on_stopped(self):
+    @handler(events.FlushPendings.__name__)
+    def on_flush(self):
         for job in self.restriction_to_job.values():
             job.flush()

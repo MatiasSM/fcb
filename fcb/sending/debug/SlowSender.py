@@ -1,18 +1,25 @@
 import time
 
+from circuits import Worker
+
 from fcb.framework.workflow.SenderTask import SenderTask
 
 
 class SlowSender(SenderTask):
-    def __init__(self, settings):
-        SenderTask.__init__(self)
+    _worker = Worker()
+    _sleep_time = None
 
+    def do_init(self, settings):
         self._sleep_time = settings.sleep_time
 
     # override from SenderTask
     def do_send(self, block):
         self.log.debug("Slow sending block. Sleep %d", self._sleep_time)
         time.sleep(self._sleep_time)
+
+    # override from HeavyPipelineTask
+    def get_worker_channel(self):
+        return self._worker
 
     # override from SenderTask
     def destinations(self):

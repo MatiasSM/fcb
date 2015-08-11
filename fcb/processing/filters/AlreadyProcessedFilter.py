@@ -1,3 +1,4 @@
+from circuits import handler
 from dateutil import tz
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -9,6 +10,9 @@ from fcb.framework.workflow.PipelineTask import PipelineTask
 class AlreadyProcessedFilter(PipelineTask):
     _session_resource = None
 
+    def do_init(self):
+        self._session_resource = get_session()
+
     # override from PipelineTask
     def process_data(self, file_info):
         """expects FileInfo"""
@@ -18,17 +22,12 @@ class AlreadyProcessedFilter(PipelineTask):
             return file_info
         return None
 
-    # override from PipelineTask
+    @handler("Stopped")
     def on_stopped(self):
         if self._session_resource:
             with self._session_resource as session:
                 session.commit()
                 session.close()
-
-    # override from PipelineTask
-    def on_start(self):
-        if not self._session_resource:
-            self._session_resource = get_session()
 
     # -------- low visibility methods
     def _is_already_processed(self, file_info):

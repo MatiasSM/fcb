@@ -4,8 +4,9 @@ from fcb.framework.workflow.PipelineTask import PipelineTask
 
 
 class Cleaner(PipelineTask):
-    def __init__(self, delete_temp_files):
-        PipelineTask.__init__(self)
+    _delete_temp_files = None
+
+    def do_init(self, delete_temp_files):
         self._delete_temp_files = delete_temp_files
 
     # override from PipelineTask

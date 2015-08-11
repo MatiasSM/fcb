@@ -7,11 +7,15 @@ import random
 import struct
 from Crypto.Cipher import AES
 
-from fcb.framework.workflow.PipelineTask import PipelineTask
+from circuits import Worker
+
+from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 
 
-class Cipher(PipelineTask):
+class Cipher(HeavyPipelineTask):
+    _worker = Worker(channel="Cipher")
+
     @classmethod
     def get_extension(cls):
         return ".enc"
@@ -20,17 +24,17 @@ class Cipher(PipelineTask):
     def is_transformed(cls, path):
         return path.endswith(cls.get_extension())
 
-    # override from PipelineTask
-    def process_data(self, block):
+    # override from HeavyPipelineTask
+    def do_heavy_work(self, block):
         """
         Expects Compressor Block like objects
         """
-        cipher_key = Cipher.gen_key(32)
+        cipher_key = self.gen_key(32)
         in_file_path = block.latest_file_info.path
         dst_file_path = block.processed_data_file_info.path + self.get_extension()
         self.log.debug("Encrypting file '%s' with key '%s' to file '%s'",
                        in_file_path, cipher_key, dst_file_path)
-        Cipher.encrypt_file(key=cipher_key,
+        self.encrypt_file(key=cipher_key,
                             in_filename=in_file_path,
                             out_filename=dst_file_path)
         block.cipher_key = cipher_key
@@ -38,12 +42,16 @@ class Cipher(PipelineTask):
         block.latest_file_info = block.ciphered_file_info
         return block
 
+    # override from HeavyPipelineTask
+    def get_worker_channel(self):
+        return self._worker
+
     @classmethod
     def gen_key(cls, size):
-        return ''.join(random.choice("".join((string.letters, string.digits,string.punctuation))) for _ in range(size))
-    
+        return ''.join(random.choice("".join((string.letters, string.digits, string.punctuation))) for _ in range(size))
+
     @classmethod
-    def encrypt_file(cls, key, in_filename, out_filename=None, chunksize=64*1024):
+    def encrypt_file(cls, key, in_filename, out_filename=None, chunksize=64 * 1024):
         """ Encrypts a file using AES (CBC mode) with the
             given key.
     
@@ -66,27 +74,27 @@ class Cipher(PipelineTask):
         """
         if not out_filename:
             out_filename = in_filename + '.enc'
-    
+
         iv = ''.join(chr(random.randint(0, 0xFF)) for _ in range(16))
         encryptor = AES.new(key, AES.MODE_CBC, iv)
         filesize = os.path.getsize(in_filename)
-    
+
         with open(in_filename, 'rb') as infile:
             with open(out_filename, 'wb') as outfile:
                 outfile.write(struct.pack('<Q', filesize))
                 outfile.write(iv)
-    
+
                 while True:
                     chunk = infile.read(chunksize)
                     if len(chunk) == 0:
                         break
                     elif len(chunk) % 16 != 0:
                         chunk += ' ' * (16 - len(chunk) % 16)
-    
+
                     outfile.write(encryptor.encrypt(chunk))
-                   
-    @classmethod                
-    def decrypt_file(cls, key, in_filename, out_filename=None, chunksize=24*1024):
+
+    @classmethod
+    def decrypt_file(cls, key, in_filename, out_filename=None, chunksize=24 * 1024):
         """ Decrypts a file using AES (CBC mode) with the
             given key. Parameters are similar to encrypt_file,
             with one difference: out_filename, if not supplied
@@ -96,17 +104,17 @@ class Cipher(PipelineTask):
         """
         if not out_filename:
             out_filename = os.path.splitext(in_filename)[0]
-    
+
         with open(in_filename, 'rb') as infile:
             origsize = struct.unpack('<Q', infile.read(struct.calcsize('Q')))[0]
             iv = infile.read(16)
             decryptor = AES.new(key, AES.MODE_CBC, iv)
-    
+
             with open(out_filename, 'wb') as outfile:
                 while True:
                     chunk = infile.read(chunksize)
                     if len(chunk) == 0:
                         break
                     outfile.write(decryptor.decrypt(chunk))
-    
+
                 outfile.truncate(origsize)

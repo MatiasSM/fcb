@@ -26,7 +26,7 @@ setup(
     ],
     keywords='backup storage internet',
 
-    install_requires=['sqlalchemy', 'subprocess32', 'python-dateutil', 'numpy', 'pycrypto', 'pillow'],
+    install_requires=['sqlalchemy', 'subprocess32', 'python-dateutil', 'numpy', 'pycrypto', 'pillow', 'circuits'],
 
     package_data={
         'sample_settings': ['fcb/config_example*.xml'],

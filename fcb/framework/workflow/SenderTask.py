@@ -1,14 +1,14 @@
-from fcb.framework.workflow.PipelineTask import PipelineTask
+from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 
 
 class SendingError(Exception):
     pass
 
 
-class SenderTask(PipelineTask):
+class SenderTask(HeavyPipelineTask):
 
-    # override from PipelineTask
-    def process_data(self, block):
+    # override from HeavyPipelineTask
+    def do_heavy_work(self, block):
         """
         Note: Expects Compressor Block like objects
         """

@@ -7,8 +7,10 @@ from fcb.framework.workflow.PipelineTask import PipelineTask
 
 
 class SentLog(PipelineTask):
-    def __init__(self, sent_log):
-        PipelineTask.__init__(self)
+    _session_resource = None
+    _sent_log_file = None
+
+    def do_init(self, sent_log):
         self._session_resource = None
         self._sent_log_file = open(sent_log, 'a') if sent_log else None
 

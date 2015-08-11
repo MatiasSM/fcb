@@ -2,11 +2,14 @@ from PIL import Image
 import numpy
 import math
 
-from fcb.framework.workflow.PipelineTask import PipelineTask
+from circuits import Worker
+
+from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 from fcb.utils.log_helper import get_logger_module
 
 _log = get_logger_module("ToImage")
+
 
 # TODO image and array manipulation functions need to be optimized (a lot)
 
@@ -65,7 +68,9 @@ def from_image_to_file(img_path, file_path):
     data.tofile(file_path)
 
 
-class ToImage(PipelineTask):
+class ToImage(HeavyPipelineTask):
+    _worker = Worker(channel="ToImage")
+
     @classmethod
     def get_extension(cls):
         return ".png"
@@ -74,8 +79,8 @@ class ToImage(PipelineTask):
     def is_transformed(cls, path):
         return path.endswith(cls.get_extension())
 
-    # override from PipelineTask
-    def process_data(self, block):
+    # override from HeavyPipelineTask
+    def do_heavy_work(self, block):
         """
         Note: Expects Compressor Block like objects
         """
@@ -86,3 +91,7 @@ class ToImage(PipelineTask):
         block.image_converted_file_info = FileInfo(img_path)
         block.latest_file_info = block.image_converted_file_info
         return block
+
+    # override from HeavyPipelineTask
+    def get_worker_channel(self):
+        return self._worker
