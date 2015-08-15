@@ -13,6 +13,7 @@ class MegaSender(SenderTask):
     _worker = Worker()
 
     def do_init(self, settings, rate_limiter=None):
+        super(MegaSender, self).do_init()
         dst_dir_path = MegaAccountHandler.to_absoulte_dst_path(settings)
         self._base_comand = \
             MegaAccountHandler.build_command_argumetns(command_str="megaput",

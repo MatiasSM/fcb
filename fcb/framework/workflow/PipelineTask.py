@@ -29,6 +29,9 @@ class PipelineTask(BaseComponent):
         if hasattr(self, "do_init") and isinstance(self.do_init, Callable):
             self.do_init(*args, **kwargs)
 
+    def get_next_task(self):  # FIXME fragile, remove it
+        return self._next_task
+
     def next_task(self, next_task):
         self._next_task = SinkTask() if next_task is None else next_task
 

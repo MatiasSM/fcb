@@ -17,6 +17,7 @@ class MailSender(SenderTask):
     _worker = Worker()
 
     def do_init(self, mail_conf):
+        super(MailSender, self).do_init()
         self._mail_conf = deepcopy(mail_conf)
 
     # override from SenderTask

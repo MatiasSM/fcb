@@ -14,6 +14,7 @@ class ToDirectorySender(SenderTask):
     _worker = Worker()
 
     def do_init(self, dir_path):
+        super(ToDirectorySender, self).do_init()
         self._dir_path = self._check_dir_path(dir_path)
         self.log.info("Destination directory '%s' will be used", self._dir_path)
 

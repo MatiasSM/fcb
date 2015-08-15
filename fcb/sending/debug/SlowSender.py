@@ -10,6 +10,7 @@ class SlowSender(SenderTask):
     _sleep_time = None
 
     def do_init(self, settings):
+        super(SlowSender, self).do_init()
         self._sleep_time = settings.sleep_time
 
     # override from SenderTask
