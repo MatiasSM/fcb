@@ -216,6 +216,12 @@ class _CompressorJob(HeavyPipelineTask):
 
     def _do_compress(self, file_info):
         with self._lock:
+            if file_info is None:  # FIXME ugly handling
+                self.log.debug("Received flush request")
+                if self._current_block:
+                    self._finish_current_block()
+                return
+
             self.log.debug("Processing file: %s", file_info.path)
             # note we check against the file (despite it will be compressed, and possibly require less space) so we
             # can avoid processing it if it wouldn't fit
@@ -259,8 +265,11 @@ class _CompressorJob(HeavyPipelineTask):
             Finish processing any partly created block of information
             Should be executed when no more files are intended to be read
         """
-        if self._current_block:
-            self._finish_current_block()
+        '''
+        queue a None (internally interpreted as flush) "file" to process
+        Note: because files are processed in FIFO order, this will flush any already queued file
+        '''
+        self.process_data(None)
 
     @staticmethod
     def _create_fragments(file_info, first_chunk_size, other_chunks_size, parts_basedir):

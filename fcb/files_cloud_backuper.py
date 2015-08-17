@@ -9,6 +9,7 @@ from fcb.database.helpers import get_session
 from fcb.database.helpers import get_db_version
 from fcb.database.schema import FilesDestinations
 from fcb.framework import events
+from fcb.framework.events import FlushPendings
 from fcb.framework.workflow.Pipeline import Pipeline
 from fcb.processing.filesystem.Cleaner import Cleaner
 from fcb.processing.filters.FileSizeFilter import FileSizeFilter
@@ -29,7 +30,6 @@ from fcb.sending.mega.MegaSender import MegaSender
 from fcb.utils import trickle
 from fcb.utils.Settings import Settings, InvalidSettings
 from fcb.utils.log_helper import get_logger_module, deep_print
-
 
 
 # noinspection PyUnresolvedReferences
@@ -111,6 +111,21 @@ class App(Component):
             .add(Cleaner(delete_temp_files=settings.stored_files.delete_temp_files))
 
 
+class PipelineFlusher(Component):
+    remaining_inputs = 0
+
+    def init(self, remaining_inputs):
+        self.remaining_inputs = remaining_inputs
+
+    def NewInputPath_complete(self, *_):
+        self._notify_completed()
+
+    def _notify_completed(self):
+        self.remaining_inputs -= 1
+        if self.remaining_inputs == 0:
+            self.fire(FlushPendings())
+
+
 def main():
     global aborter
 
@@ -129,9 +144,14 @@ def main():
 
         app = App(settings, session)
 
+        in_files = sys.argv[2:]
+        PipelineFlusher(remaining_inputs=len(in_files)).register(app)
+
         # load files to read
-        for file_path in sys.argv[2:]:
-            app.fire(events.NewInputPath(file_path))
+        for file_path in in_files:
+            event = events.NewInputPath(file_path)
+            event.complete = True
+            app.fire(event)
 
         session.close()
 
@@ -147,6 +167,7 @@ def main():
 
     app.run()
     log.debug("finished processing")
+
 
 if __name__ == '__main__':
     try:

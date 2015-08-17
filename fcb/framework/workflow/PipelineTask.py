@@ -1,6 +1,6 @@
 from collections import Callable
-import threading
-from circuits import BaseComponent, Event, handler
+
+from circuits import BaseComponent
 
 from fcb.utils.log_helper import get_logger_module
 

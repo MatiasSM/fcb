@@ -44,7 +44,7 @@ class HeavyPipelineTask(PipelineTask):
 
     # override from PipelineTask
     def hand_on_to_next_task(self, block):
-        self.log.debug("Will fire to next handler with block %s", block)
+        # self.log.debug("Will fire to next handler with block %s", block)
         self.fire(_ToNextHandler(block), self._to_next_channel)
 
     def get_worker_channel(self):
