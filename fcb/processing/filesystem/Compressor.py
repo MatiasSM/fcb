@@ -3,11 +3,19 @@ import tarfile
 import tempfile
 from datetime import datetime
 import os
+import threading
 
+from circuits import handler, Event
+
+from fcb.framework import events
+from fcb.framework.workers import hd_worker_pool
+from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.framework.workflow.PipelineTask import PipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 from fcb.processing.models.Quota import Quota
 from fcb.utils.log_helper import get_logger_for, get_logger_module, deep_print
+
+_worker_pool = hd_worker_pool
 
 
 class Block(object):
@@ -156,15 +164,36 @@ class _BlockFragmenter(object):
                and self._max_container_content_size_in_bytes >= file_info.size
 
 
-class _CompressorJob(object):
-    def __init__(self,
-                 sender_spec,
-                 tmp_file_parts_basepath,
-                 should_split_small_files,
-                 new_output_cb,
-                 global_quota):
+class _NewFileToCompress(Event):
+    """
+    Expects FileInfo
+    """
+    pass
+
+
+class _NewDestinations(Event):
+    """
+    Expects destinations
+    """
+    pass
+
+
+class _CompressorJob(HeavyPipelineTask):
+    _tmp_file_parts_basepath = None
+    _destinations = None
+    _current_block = None
+    _block_fragmenter = None
+    log = None
+    name = None
+    _lock = threading.RLock()
+
+    def do_init(self,
+                sender_spec,
+                tmp_file_parts_basepath,
+                should_split_small_files,
+                global_quota):
+        super(_CompressorJob, self).do_init()
         self._tmp_file_parts_basepath = tmp_file_parts_basepath
-        self._new_output_cb = new_output_cb
         self._destinations = sender_spec.destinations
         self._current_block = None
         self._block_fragmenter = _BlockFragmenter(sender_spec=sender_spec,
@@ -176,52 +205,71 @@ class _CompressorJob(object):
     def add_destinations(self, destinations):
         self._destinations.extend(destinations)
 
-    def process_data(self, file_info):
-        self.log.debug("Processing file: %s", file_info.path)
-        # note we check against the file (despite it will be compressed, and possibly require less space) so we
-        # can avoid processing it if it wouldn't fit
-        if not self._block_fragmenter.does_fit_in_todays_share(file_info):
-            self.log.debug("Won't try to fit file '%s' into block because adding it's size (%d)" +
-                           " to the current sent amount (%d) would exceed the maximum for the day (%d)",
-                           file_info.path, file_info.size, self._block_fragmenter.bytes_uploaded_today,
-                           self._block_fragmenter.max_upload_per_day_in_bytes)
-            return  # ignore file
+    # override from HeavyPipelineTask
+    def do_heavy_work(self, file_info):
+        self.log.debug("File to process: %s", file_info)
+        self._do_compress(file_info)
 
-        file_parts = [file_info]
-        self._add_block_if_none()
+    # override from HeavyPipelineTask
+    def get_worker_channel(self):
+        return _worker_pool.get_worker()
 
-        if not self._block_fragmenter.can_add_new_content(self._current_block, file_info):
-            self.log.debug("Need to finish current block because file '%s' can't be added to it", file_info.path)
-            self._finish_current_block(True)
-        elif not self._block_fragmenter.does_content_fit(file_info, self._current_block):
-            self.log.debug("File '%s' doesn't fit in the block, will need to fragment it", file_info.path)
-            # split the file so the first part fits in the current block and the remaining in new blocks
-            fragments_spec = self._block_fragmenter.get_fragments_spec(self._current_block)
-            file_parts = self._create_fragments(file_info, fragments_spec.first,
-                                                fragments_spec.remaining, self._tmp_file_parts_basepath)
-            self.log.debug("File '%s' fragmented in %d parts to fit in blocks" % (file_info.path, len(file_parts)))
+    def _do_compress(self, file_info):
+        with self._lock:
+            if file_info is None:  # FIXME ugly handling
+                self.log.debug("Received flush request")
+                if self._current_block:
+                    self._finish_current_block()
+                return
 
-        fragments_count = len(file_parts)
-        fragment_num = 0
+            self.log.debug("Processing file: %s", file_info.path)
+            # note we check against the file (despite it will be compressed, and possibly require less space) so we
+            # can avoid processing it if it wouldn't fit
+            if not self._block_fragmenter.does_fit_in_todays_share(file_info):
+                self.log.debug("Won't try to fit file '%s' into block because adding it's size (%d)" +
+                               " to the current sent amount (%d) would exceed the maximum for the day (%d)",
+                               file_info.path, file_info.size, self._block_fragmenter.bytes_uploaded_today,
+                               self._block_fragmenter.max_upload_per_day_in_bytes)
+                return  # ignore file
 
-        for part_file_info in file_parts:
+            file_parts = [file_info]
             self._add_block_if_none()
-            if fragments_count > 1:  # is fragmented
-                fragment_num += 1
-                part_file_info.fragment_info = FragmentInfo(file_info, fragment_num, fragments_count)
-                self._current_block.fragmented_files.append(part_file_info.fragment_info)
-            self._current_block.add(part_file_info)
-            if not self._block_fragmenter.has_space_left(self._current_block):
-                self.log.debug("No more space left in current block, will finish it")
-                self._finish_current_block()
+
+            if not self._block_fragmenter.can_add_new_content(self._current_block, file_info):
+                self.log.debug("Need to finish current block because file '%s' can't be added to it", file_info.path)
+                self._finish_current_block(True)
+            elif not self._block_fragmenter.does_content_fit(file_info, self._current_block):
+                self.log.debug("File '%s' doesn't fit in the block, will need to fragment it", file_info.path)
+                # split the file so the first part fits in the current block and the remaining in new blocks
+                fragments_spec = self._block_fragmenter.get_fragments_spec(self._current_block)
+                file_parts = self._create_fragments(file_info, fragments_spec.first,
+                                                    fragments_spec.remaining, self._tmp_file_parts_basepath)
+                self.log.debug("File '%s' fragmented in %d parts to fit in blocks" % (file_info.path, len(file_parts)))
+
+            fragments_count = len(file_parts)
+            fragment_num = 0
+
+            for part_file_info in file_parts:
+                self._add_block_if_none()
+                if fragments_count > 1:  # is fragmented
+                    fragment_num += 1
+                    part_file_info.fragment_info = FragmentInfo(file_info, fragment_num, fragments_count)
+                    self._current_block.fragmented_files.append(part_file_info.fragment_info)
+                self._current_block.add(part_file_info)
+                if not self._block_fragmenter.has_space_left(self._current_block):
+                    self.log.debug("No more space left in current block, will finish it")
+                    self._finish_current_block()
 
     def flush(self):
         """
             Finish processing any partly created block of information
             Should be executed when no more files are intended to be read
         """
-        if self._current_block:
-            self._finish_current_block()
+        '''
+        queue a None (internally interpreted as flush) "file" to process
+        Note: because files are processed in FIFO order, this will flush any already queued file
+        '''
+        self.process_data(None)
 
     @staticmethod
     def _create_fragments(file_info, first_chunk_size, other_chunks_size, parts_basedir):
@@ -244,7 +292,8 @@ class _CompressorJob(object):
     def _finish_current_block(self, should_add_new_block=False):
         self._current_block.finish()
         self._block_fragmenter.account_block(self._current_block)
-        self._new_output_cb(self._current_block)
+        # self._new_output_cb(self._current_block)
+        self.hand_on_to_next_task(self._current_block)
         self._current_block = None
         if should_add_new_block:
             Block(self._destinations)
@@ -261,9 +310,7 @@ class _CompressorJob(object):
 class Compressor(PipelineTask):
     restriction_to_job = {}  # keeps a map sender_spec.restrictions -> _CompressorJob
 
-    def __init__(self, fs_settings, global_quota):
-        PipelineTask.__init__(self)
-
+    def do_init(self, fs_settings, global_quota):
         fs_settings = deepcopy(fs_settings)  # because we store some of the info, we need a deep copy
         '''
         If the same restrictions are applied for many destinations, we use the same job to avoid processing
@@ -274,12 +321,19 @@ class Compressor(PipelineTask):
             if restrictions in self.restriction_to_job:
                 self.restriction_to_job[restrictions].add_destinations(sender_spec.destinations)
             else:
-                self.restriction_to_job[restrictions] = \
-                    _CompressorJob(sender_spec=sender_spec,
-                                   tmp_file_parts_basepath=fs_settings.tmp_file_parts_basepath,
-                                   should_split_small_files=fs_settings.should_split_small_files,
-                                   new_output_cb=lambda data: self.new_output(data),
-                                   global_quota=global_quota)
+                compressor = _CompressorJob(
+                    next_task=self.get_next_task(),
+                    sender_spec=sender_spec,
+                    tmp_file_parts_basepath=fs_settings.tmp_file_parts_basepath,
+                    should_split_small_files=fs_settings.should_split_small_files,
+                    global_quota=global_quota)
+                self.restriction_to_job[restrictions] = compressor
+                compressor.register(self)
+
+    def next_task(self, next_task):
+        for job in self.restriction_to_job.values():
+            job.next_task(next_task)
+        PipelineTask.next_task(self, next_task)
 
     # override from PipelineTask
     def process_data(self, file_info):
@@ -287,7 +341,8 @@ class Compressor(PipelineTask):
             self.log.debug("Processing file by: {}".format(job.name))
             job.process_data(file_info)
 
-    # override from PipelineTask
-    def on_stopped(self):
-        for job in self.restriction_to_job.values():
-            job.flush()
+    @handler(events.FlushPendings.__name__)
+    def on_flush(self):
+        if not self.is_disabled:
+            for job in self.restriction_to_job.values():
+                job.flush()

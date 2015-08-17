@@ -8,14 +8,20 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
+from fcb.framework.workers import mail_sender_worker_pool
 from fcb.framework.workflow.SenderTask import SenderTask, SendingError
+
+_worker_pool = mail_sender_worker_pool
 
 
 class MailSender(SenderTask):
-    def __init__(self, mail_conf):
-        SenderTask.__init__(self)
+    _mail_conf = None
+
+    def do_init(self, mail_conf):
+        super(MailSender, self).do_init()
         self._mail_conf = deepcopy(mail_conf)
 
+    # override from SenderTask
     def do_send(self, block):
         sending_succedded = self._send_mail(subject=block.latest_file_info.basename,
                                             text=self._gen_mail_content(block),
@@ -23,6 +29,11 @@ class MailSender(SenderTask):
         if not sending_succedded:
             raise SendingError()
 
+    # override from HeavyPipelineTask
+    def get_worker_channel(self):
+        return _worker_pool.get_worker()
+
+    # override from SenderTask
     def destinations(self):
         return self._mail_conf.dst_mails
 

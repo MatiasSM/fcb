@@ -1,12 +1,19 @@
 from subprocess32 import CalledProcessError
 
+from fcb.framework.workers import mega_sender_worker_pool
 from fcb.framework.workflow.SenderTask import SenderTask, SendingError
 from fcb.sending.mega.helpers import MegaAccountHandler
 
+_worker_pool = mega_sender_worker_pool
+
 
 class MegaSender(SenderTask):
-    def __init__(self, settings, rate_limiter=None):
-        SenderTask.__init__(self)
+    _base_comand = None
+    _destination_name = None
+    _limited_cmd = None
+
+    def do_init(self, settings, rate_limiter=None):
+        super(MegaSender, self).do_init()
         dst_dir_path = MegaAccountHandler.to_absoulte_dst_path(settings)
         self._base_comand = \
             MegaAccountHandler.build_command_argumetns(command_str="megaput",
@@ -17,6 +24,7 @@ class MegaSender(SenderTask):
         self._limited_cmd = (lambda args: args) if rate_limiter is None else \
             (lambda args: rate_limiter.wrap_call(args))
 
+    # override from SenderTask
     def do_send(self, block):
         to_upload = block.latest_file_info.path
         self.log.info("Starting upload of '%s'", to_upload)
@@ -28,6 +36,11 @@ class MegaSender(SenderTask):
             self.log.error("Upload of '%s' failed: %s", to_upload, e)
             raise SendingError(e)
 
+    # override from HeavyPipelineTask
+    def get_worker_channel(self):
+        return _worker_pool.get_worker()
+
+    # override from SenderTask
     def destinations(self):
         return [self._destination_name]
 

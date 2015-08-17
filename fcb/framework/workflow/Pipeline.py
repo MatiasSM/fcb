@@ -1,75 +1,92 @@
-import itertools
+from signal import SIGINT
 
-from fcb.framework.workflow.ParallelTaskGroup import ParallelTaskGroup
+from circuits import Component, handler, BaseComponent
+
+from circuits.core.events import signal
+
+from fcb.framework import events
+from fcb.framework.Marker import Marks
 from fcb.utils.log_helper import get_logger_module
 
 
-class Pipeline(object):
+class _GlobalWorkflowController(BaseComponent):
+    log = get_logger_module("_GlobalWorkflowController")
+
+    _should_stop = False
+    _send_remaining = 0
+
+    @handler(events.Mark.__name__)
+    def on_mark(self, mark, *_):
+        if mark == Marks.sending_stage:
+            self._mark_new_sending()
+        elif mark == Marks.end_of_pipeline:
+            self._mark_sent()
+        self.check_end_condition()
+
+    @handler(events.SystemShouldStop.__name__)
+    def should_stop(self):
+        self._should_stop = True
+        self.check_end_condition()
+
+    def check_end_condition(self):
+        self.log.debug("Send remaining %d", self._send_remaining)
+        if self._send_remaining == 0:
+            self._stop_if_required()
+
+    def _stop_if_required(self):
+        if self._should_stop:
+            raise SystemExit(0)
+
+    def _mark_new_sending(self):
+        self._send_remaining += 1
+
+    def _mark_sent(self):
+        self._send_remaining -= 1
+
+
+class Pipeline(Component):
     """
     Represents a pipeline of work (composed of PipelineTasks)
     """
     _task_chain = []
+    _to_disable_on_shutdown = []
     log = get_logger_module("Pipeline")
 
-    def add(self, task, output_queue):
+    def init(self):
+        _GlobalWorkflowController().register(self)  # will handle system termination
+        pass
+
+    def add(self, task, disable_on_shutdown=False):
         if task is None:
             return self
 
-        task.output_queue(output_queue)
         if self._task_chain:
-            self._task_chain[-1].connect_to_output(task)
+            self._task_chain[-1].next_task(task)
+
         self.log.debug("Pipeline add task: {}".format(str(task)))
         self._task_chain.append(task)
+        if disable_on_shutdown:
+            self._to_disable_on_shutdown.append(task)
+
+        task.register(self)
         return self
 
-    def add_in_list(self, tasks, output_queue):
+    def add_in_list(self, tasks, disable_on_shutdown=False):
         if tasks is None:
             return self
 
         for task in tasks:
-            self.add(task, output_queue)
+            self.add(task=task, disable_on_shutdown=disable_on_shutdown)
         return self
 
-    def add_parallel(self, task_builder, output_queue, num_of_tasks):
-        """
-        Adds many tasks associated to the same output queue
-
-        :param task_builder: functor to build the tasks
-        :param output_queue: output queue for the tasks
-        :param num_of_tasks: amount of tasks to add
-        """
-        if task_builder is None:
-            return self
-
-        group = ParallelTaskGroup(output_queue=output_queue)
-        group.add_many([task_builder() for _ in itertools.repeat(None, num_of_tasks)])
-        return self.add(task=group, output_queue=output_queue)
-
-    def start_all(self):
-        """
-        start the tasks in the pipeline in reverse order
-        """
-        for task in reversed(self._task_chain):
-            task.start()
+    @handler(signal.__name__, priority=10)
+    def _on_signal(self, event, signo, *_):
+        if signo == SIGINT:
+            self.request_stop()
+            event.stop()  # we will finish up
 
     def request_stop(self):
-        if self._task_chain:
-            self._task_chain[0].request_stop()
-
-    def stop_all(self):
-        # note we stop according to the pipeline order
-        for task in self._task_chain:
-            task.stop()
-
-    def wait_next_to_stop(self, timeout):
-        """
-        Waits for the closest to the beginning alive task in the pipeline to stop
-        :param timeout: max amount of time to wait
-        :return: True if some waiting was done
-                 False if there weren't any alive task next
-        """
-        for task in self._task_chain:
-            if task.is_alive():
-                task.join(timeout)
-                return True
-        return False
+        for task in self._to_disable_on_shutdown:
+            task.disable()
+        self.fire(events.FlushPendings())
+        self.fire(events.SystemShouldStop())
