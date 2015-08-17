@@ -1,5 +1,7 @@
 Release 0.4.0:
     * (Again) architecture refactor. Moved to an event driven architecture
+    * Implements faster termination, only waits for pending sending (don't process new input)
+    * Implements by resource threads (e.g. hard drive I/O and internet upload)
 
 Release 0.3.0:
     * Completely rewrite previous functionality to get more maintainable code
