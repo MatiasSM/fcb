@@ -1,16 +1,16 @@
-from circuits import Worker
 from subprocess32 import CalledProcessError
 
+from fcb.framework.workers import mega_sender_worker_pool
 from fcb.framework.workflow.SenderTask import SenderTask, SendingError
 from fcb.sending.mega.helpers import MegaAccountHandler
+
+_worker_pool = mega_sender_worker_pool
 
 
 class MegaSender(SenderTask):
     _base_comand = None
     _destination_name = None
     _limited_cmd = None
-
-    _worker = Worker()
 
     def do_init(self, settings, rate_limiter=None):
         super(MegaSender, self).do_init()
@@ -38,7 +38,7 @@ class MegaSender(SenderTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return self._worker
+        return _worker_pool.get_worker()
 
     # override from SenderTask
     def destinations(self):

@@ -7,15 +7,14 @@ import random
 import struct
 from Crypto.Cipher import AES
 
-from circuits import Worker
-
+from fcb.framework.workers import hd_worker_pool
 from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 
+_worker_pool = hd_worker_pool
+
 
 class Cipher(HeavyPipelineTask):
-    _worker = Worker(channel="Cipher")
-
     @classmethod
     def get_extension(cls):
         return ".enc"
@@ -35,8 +34,8 @@ class Cipher(HeavyPipelineTask):
         self.log.debug("Encrypting file '%s' with key '%s' to file '%s'",
                        in_file_path, cipher_key, dst_file_path)
         self.encrypt_file(key=cipher_key,
-                            in_filename=in_file_path,
-                            out_filename=dst_file_path)
+                          in_filename=in_file_path,
+                          out_filename=dst_file_path)
         block.cipher_key = cipher_key
         block.ciphered_file_info = FileInfo(dst_file_path)
         block.latest_file_info = block.ciphered_file_info
@@ -44,7 +43,7 @@ class Cipher(HeavyPipelineTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return self._worker
+        return _worker_pool.get_worker()
 
     @classmethod
     def gen_key(cls, size):

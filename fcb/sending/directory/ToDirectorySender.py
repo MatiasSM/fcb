@@ -1,9 +1,10 @@
 import os
 import shutil
 
-from circuits import Worker
-
+from fcb.framework.workers import hd_worker_pool
 from fcb.framework.workflow.SenderTask import SenderTask
+
+_worker_pool = hd_worker_pool
 
 
 class ToDirectorySender(SenderTask):
@@ -11,7 +12,6 @@ class ToDirectorySender(SenderTask):
     Implements a sender that saves the processed files into a filesystem directory
     """
     _dir_path = None
-    _worker = Worker()
 
     def do_init(self, dir_path):
         super(ToDirectorySender, self).do_init()
@@ -25,7 +25,7 @@ class ToDirectorySender(SenderTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return self._worker
+        return _worker_pool.get_worker()
 
     # override from SenderTask
     def destinations(self):

@@ -8,13 +8,14 @@ from email.MIMEMultipart import MIMEMultipart
 from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
-from circuits import Worker
+from fcb.framework.workers import mail_sender_worker_pool
 from fcb.framework.workflow.SenderTask import SenderTask, SendingError
+
+_worker_pool = mail_sender_worker_pool
 
 
 class MailSender(SenderTask):
     _mail_conf = None
-    _worker = Worker()
 
     def do_init(self, mail_conf):
         super(MailSender, self).do_init()
@@ -30,7 +31,7 @@ class MailSender(SenderTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return self._worker
+        return _worker_pool.get_worker()
 
     # override from SenderTask
     def destinations(self):

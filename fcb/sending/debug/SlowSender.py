@@ -1,12 +1,12 @@
 import time
 
-from circuits import Worker
-
+from fcb.framework.workers import default_worker_pool
 from fcb.framework.workflow.SenderTask import SenderTask
+
+_worker_pool = default_worker_pool
 
 
 class SlowSender(SenderTask):
-    _worker = Worker()
     _sleep_time = None
 
     def do_init(self, settings):
@@ -20,7 +20,7 @@ class SlowSender(SenderTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return self._worker
+        return _worker_pool.get_worker()
 
     # override from SenderTask
     def destinations(self):

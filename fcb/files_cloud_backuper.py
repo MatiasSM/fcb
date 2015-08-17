@@ -8,7 +8,7 @@ from circuits import Component, Debugger
 from fcb.database.helpers import get_session
 from fcb.database.helpers import get_db_version
 from fcb.database.schema import FilesDestinations
-from fcb.framework import events
+from fcb.framework import events, workers
 from fcb.framework.events import FlushPendings
 from fcb.framework.workflow.Pipeline import Pipeline
 from fcb.processing.filesystem.Cleaner import Cleaner
@@ -36,30 +36,6 @@ from fcb.utils.log_helper import get_logger_module, deep_print
 import fcb.log_configuration
 
 log = get_logger_module('main')
-
-
-# FIXME really ugly way of processing abortion
-class ProgramAborter(object):
-    """ Does what needs to be done when the program is intended to be graciously aborted """
-
-    def __init__(self, pipeline):
-        self._pipeline = pipeline
-
-    def abort(self):
-        log.info("Abort requested!!!!")
-        self._pipeline.request_stop()
-        log.info("Should finish processing soon")
-
-
-aborter = None
-
-
-def signal_handler(*_):
-    global aborter
-
-    print "Abort signal received!!!!"
-    aborter.abort()
-
 
 class App(Component):
     pipeline = Pipeline()
@@ -127,8 +103,6 @@ class PipelineFlusher(Component):
 
 
 def main():
-    global aborter
-
     if len(sys.argv) < 3:
         log.error("Usage: %s <config_file> <input path> [<input path> ...]", sys.argv[0])
         exit(1)
@@ -144,6 +118,8 @@ def main():
 
         app = App(settings, session)
 
+        workers.manager.register_app(app)
+
         in_files = sys.argv[2:]
         PipelineFlusher(remaining_inputs=len(in_files)).register(app)
 
@@ -154,10 +130,6 @@ def main():
             app.fire(event)
 
         session.close()
-
-    # create gracefully finalization mechanism
-    aborter = ProgramAborter(app.pipeline)
-    signal.signal(signal.SIGINT, signal_handler)
 
     if settings.debugging.enabled:
         from fcb.utils.debugging import configure_signals

@@ -2,8 +2,7 @@ from PIL import Image
 import numpy
 import math
 
-from circuits import Worker
-
+from fcb.framework.workers import hd_worker_pool
 from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 from fcb.utils.log_helper import get_logger_module
@@ -68,9 +67,10 @@ def from_image_to_file(img_path, file_path):
     data.tofile(file_path)
 
 
-class ToImage(HeavyPipelineTask):
-    _worker = Worker(channel="ToImage")
+_worker_pool = hd_worker_pool
 
+
+class ToImage(HeavyPipelineTask):
     @classmethod
     def get_extension(cls):
         return ".png"
@@ -94,4 +94,4 @@ class ToImage(HeavyPipelineTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return self._worker
+        return _worker_pool.get_worker()

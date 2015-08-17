@@ -5,16 +5,17 @@ from datetime import datetime
 import os
 import threading
 
-from circuits import handler, Worker, task, BaseComponent, Event
+from circuits import handler, Event
 
 from fcb.framework import events
+from fcb.framework.workers import hd_worker_pool
 from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.framework.workflow.PipelineTask import PipelineTask
 from fcb.processing.models.FileInfo import FileInfo
 from fcb.processing.models.Quota import Quota
 from fcb.utils.log_helper import get_logger_for, get_logger_module, deep_print
 
-_worker = Worker(channel="Compressor")  # TODO DEFINE ELSEWHERE
+_worker_pool = hd_worker_pool
 
 
 class Block(object):
@@ -192,7 +193,6 @@ class _CompressorJob(HeavyPipelineTask):
                 should_split_small_files,
                 global_quota):
         super(_CompressorJob, self).do_init()
-        _worker.register(self)
         self._tmp_file_parts_basepath = tmp_file_parts_basepath
         self._destinations = sender_spec.destinations
         self._current_block = None
@@ -212,7 +212,7 @@ class _CompressorJob(HeavyPipelineTask):
 
     # override from HeavyPipelineTask
     def get_worker_channel(self):
-        return _worker
+        return _worker_pool.get_worker()
 
     def _do_compress(self, file_info):
         with self._lock:
@@ -311,7 +311,6 @@ class Compressor(PipelineTask):
     restriction_to_job = {}  # keeps a map sender_spec.restrictions -> _CompressorJob
 
     def do_init(self, fs_settings, global_quota):
-        _worker.register(self)
         fs_settings = deepcopy(fs_settings)  # because we store some of the info, we need a deep copy
         '''
         If the same restrictions are applied for many destinations, we use the same job to avoid processing
