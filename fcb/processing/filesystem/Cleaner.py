@@ -21,3 +21,4 @@ class Cleaner(PipelineTask):
                 if hasattr(content_file_info, 'fragment_info'):
                     os.remove(content_file_info.path)
                     self.log.debug("REMOVING: %s", content_file_info.path)
+        return block

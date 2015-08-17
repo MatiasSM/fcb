@@ -343,5 +343,6 @@ class Compressor(PipelineTask):
 
     @handler(events.FlushPendings.__name__)
     def on_flush(self):
-        for job in self.restriction_to_job.values():
-            job.flush()
+        if not self.is_disabled:
+            for job in self.restriction_to_job.values():
+                job.flush()

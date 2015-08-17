@@ -22,6 +22,7 @@ class PipelineTask(BaseComponent):
     """
     log = None
     _next_task = None
+    _is_disabled = False
 
     def init(self, next_task=None, *args, **kwargs):
         self.log = get_logger_module(self.__class__.__name__)
@@ -35,10 +36,24 @@ class PipelineTask(BaseComponent):
     def next_task(self, next_task):
         self._next_task = SinkTask() if next_task is None else next_task
 
+    def disable(self):
+        """
+        Marks the instance as disabled (no further data handling is done)
+        """
+        self._is_disabled = True
+        self.log.debug("Disabled!")
+
+    @property
+    def is_disabled(self):
+        return self._is_disabled
+
     def handle_data(self, data):
-        new_data = self.process_data(data)
-        if new_data is not None:
-            self.hand_on_to_next_task(new_data)
+        if not self._is_disabled:
+            new_data = self.process_data(data)
+            if new_data is not None:
+                self.hand_on_to_next_task(new_data)
+        else:
+            self.log.debug("I'm disabled, will ignore this data: %s", data)
 
     def hand_on_to_next_task(self, data):
         self._next_task.handle_data(data)

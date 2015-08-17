@@ -44,3 +44,10 @@ class TransmissionQuotaReached(SystemShouldStop):
 
 class NoMoreInput(SystemShouldStop):
     pass
+
+
+class Mark(Event):
+    """
+    :argument Mark
+    :argument Data (processed in pipeline)
+    """

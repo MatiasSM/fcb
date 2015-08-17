@@ -9,6 +9,7 @@ from fcb.database.helpers import get_session
 from fcb.database.helpers import get_db_version
 from fcb.database.schema import FilesDestinations
 from fcb.framework import events, workers
+from fcb.framework.Marker import MarkerTask, Marks
 from fcb.framework.events import FlushPendings
 from fcb.framework.workflow.Pipeline import Pipeline
 from fcb.processing.filesystem.Cleaner import Cleaner
@@ -36,6 +37,7 @@ from fcb.utils.log_helper import get_logger_module, deep_print
 import fcb.log_configuration
 
 log = get_logger_module('main')
+
 
 class App(Component):
     pipeline = Pipeline()
@@ -69,14 +71,19 @@ class App(Component):
         files_reader = FileReader(path_filter_list=settings.exclude_paths.path_filter_list)
 
         self.pipeline \
-            .add(files_reader) \
-            .add(FileSizeFilter(file_size_limit_bytes=settings.limits.max_file_size.in_bytes)) \
-            .add(QuotaFilter(global_quota=global_quota, stop_on_remaining=settings.limits.stop_on_remaining.in_bytes)) \
-            .add(AlreadyProcessedFilter() if settings.stored_files.should_check_already_sent else None) \
-            .add(Compressor(fs_settings=fs_settings, global_quota=global_quota)) \
-            .add(Cipher() if settings.stored_files.should_encrypt else None) \
-            .add(ToImage() if settings.to_image.enabled else None) \
-            .add(SlowSender(settings=settings.slow_sender) if settings.slow_sender is not None else None) \
+            .add(files_reader, disable_on_shutdown=True) \
+            .add(FileSizeFilter(file_size_limit_bytes=settings.limits.max_file_size.in_bytes),
+                 disable_on_shutdown=True) \
+            .add(QuotaFilter(global_quota=global_quota, stop_on_remaining=settings.limits.stop_on_remaining.in_bytes),
+                 disable_on_shutdown=True) \
+            .add(AlreadyProcessedFilter() if settings.stored_files.should_check_already_sent else None,
+                 disable_on_shutdown=True) \
+            .add(Compressor(fs_settings=fs_settings, global_quota=global_quota), disable_on_shutdown=True) \
+            .add(Cipher() if settings.stored_files.should_encrypt else None, disable_on_shutdown=True) \
+            .add(ToImage() if settings.to_image.enabled else None, disable_on_shutdown=True) \
+            .add(MarkerTask(mark=Marks.sending_stage), disable_on_shutdown=True) \
+            .add(SlowSender(settings=settings.slow_sender) if settings.slow_sender is not None else None,
+                 disable_on_shutdown=True) \
             .add_in_list([MailSender(mail_conf=sender_conf) for sender_conf in settings.mail_accounts]
                          if settings.mail_accounts else None) \
             .add(ToDirectorySender(dir_path=settings.dir_dest.path) if settings.dir_dest is not None else None) \
@@ -84,7 +91,8 @@ class App(Component):
                  if settings.mega_settings is not None else None) \
             .add(FakeSender() if settings.add_fake_sender else None) \
             .add(SentLog(sent_log=settings.sent_files_log)) \
-            .add(Cleaner(delete_temp_files=settings.stored_files.delete_temp_files))
+            .add(Cleaner(delete_temp_files=settings.stored_files.delete_temp_files)) \
+            .add(MarkerTask(mark=Marks.end_of_pipeline))
 
 
 class PipelineFlusher(Component):
