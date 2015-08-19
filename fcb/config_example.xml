@@ -1,81 +1,124 @@
+<!--
+Size: amount of bytes. For readability, the following modifiers may be used:
+    * 'K': meaning 1000 Bytes
+    * 'M': meaning 1000 K Bytes
+    * 'G': meaning 1000 M Bytes
+Boolean like values admit 0 or (case insensitive) "false" as False values, any other is considered True
+-->
 <configuration>
     <performance>
+        <!-- amount of containers (backup units) that can be buffered -->
         <max_pending_for_processing>10</max_pending_for_processing>
     </performance>
 
+    <!-- global limits to apply (not by destination, see <default_limits>) -->
     <limits>
+        <!-- maximum Size to backup per day (for all destinations) -->
         <max_shared_upload_per_day>0</max_shared_upload_per_day>
+        <!-- Size threshold when the processing can stop before reaching the max upload limit -->
         <stop_on_remaining>0</stop_on_remaining>
+        <!-- files with larger Size won't be backuped -->
         <max_file_size>0</max_file_size>
         <rate_limits>
+            <!-- upload rate limit -->
             <up_kbytes_sec>0</up_kbytes_sec>
         </rate_limits>
     </limits>
 
     <exclude_paths>
-        <!--
+        <!-- (exact) file name to exclude from backup (in any subdirectory) -->
         <file_name></file_name>
+        <!-- regex representing a file name  to exclude from backup (in any subdirectory) -->
         <regex_file_name></regex_file_name>
+        <!-- directory name  to exclude from backup (in any subdirectory) -->
         <dir_name></dir_name>
+        <!-- regex representing a directory name  to exclude from backup (in any subdirectory) -->
         <regex_dir_name></regex_dir_name>
+        <!-- regex representing an exclude filter to apply to paths processed as input (and recursive inputs) -->
         <regex></regex>
-        -->
     </exclude_paths>
 
+    <!-- default limits to apply to each destination -->
     <default_limits>
+        <!-- maximum Size to backup per day (per destination) -->
         <max_upload_per_day>0</max_upload_per_day>
+        <!-- maximum allowed content Size a container may have -->
         <max_container_content_size>1G</max_container_content_size>
+        <!-- maximum amount of files a container may have -->
         <max_files_per_container>0</max_files_per_container>
     </default_limits>
 
     <stored_files>
+
+        <!-- Boolean like value which tells if containers should be encrypted -->
         <should_encrypt>1</should_encrypt>
+        <!-- Boolean like value which tells if the input path should be checked (for previous backup) before backup -->
         <should_check_already_sent>1</should_check_already_sent>
+        <!-- Boolean like value which tells if temprarly generated files should be deleted when backup is completed -->
         <delete_temp_files>1</delete_temp_files>
     </stored_files>
 
-    <cipher>
-        <performance>
-            <threads>3</threads>
-        </performance>
-    </cipher>
-
     <to_image>
+        <!-- Boolean like value which tells if the containers should be converted to image -->
         <enabled>True</enabled>
     </to_image>
 
+    <!-- mail destination -->
     <mail_sender>
+        <!-- account spec (may be repeated) -->
         <account>
+            <!-- per destination limits. Supports same settings as <default_limits>
+                 This overwrites the <default_limits> for this destination -->
             <limits>
-                <max_upload_per_day>500M</max_upload_per_day>
-                <max_container_content_size>10M</max_container_content_size>
             </limits>
+            <!-- source mail account specification (used to send backup mails) -->
             <src>
+                <!-- src mail -->
                 <mail>my_mail@some_mail_srv.com</mail>
+                <!-- user to login to mail server -->
                 <user>my_mail_usr</user>
+                <!-- password to login to mail server -->
                 <password>my_mail_pass</password>
+                <!-- mail server to use for mail sending -->
                 <server>smtp.mail.some_mail_srv.com</server>
+                <!-- Boolean like value which tells if SSL should be used to connect to the mail server -->
                 <use_ssl>1</use_ssl>
             </src>
+            <!-- prefix used in backup mail subject -->
             <subject_prefix>FCB uploaded</subject_prefix>
+            <!-- mail destination (where backups are stored). May be repeated (for multiple backup) -->
             <dst_mail>my_cloud_storage@some_mail_srv.com</dst_mail>
+            <!-- number of times to retry upon mail sending failure -->
             <retries>5</retries>
+            <!-- seconds between each retry upon mail sending failure -->
             <time_between_retries>5</time_between_retries>
         </account>
     </mail_sender>
 
+    <!-- Mega.co.nz destination settings.
+        if tag is defined but no subtag is set, will use configuration file as defined by megatools -->
     <mega_sender>
-        <!-- if not set, will use configuration file as defined by megatools
+        <limits>
+        </limits>
+        <!-- Mega account user -->
         <user></user>
+        <!-- Mega account password -->
         <password></password>
+        <!-- (root) subdirectory where to store backup files -->
         <dst_path></dst_path>
-        -->
+        <!-- Boolean like value which tells if account access should be verified on start up (will add overhead) -->
         <verify_access>False</verify_access>
     </mega_sender>
 
+    <!-- file system directory destination -->
     <dir_destination>
+        <limits>
+        </limits>
+        <!-- path where backups should be stored -->
         <path>destination/my_files/</path>
     </dir_destination>
 
+    <!-- backups log file (will contain all information related to backuped files)
+         Serves as (plain text) complement to internal database -->
     <sent_files_log>files_sent.log</sent_files_log>
 </configuration>

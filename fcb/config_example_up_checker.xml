@@ -1,10 +1,16 @@
+<!-- settings for backup checker -->
 <configuration>
+    <!-- mail destination login settings (for server where backups are stored) -->
     <mail_account>
+        <!-- user to login to mail server -->
         <user>my_mail_usr</user>
+        <!-- password to login to mail server -->
         <password>my_mail_pass</password>
+        <!-- mail server where backups are stored -->
         <pop_server>smtp.mail.some_mail_srv.com</pop_server>
     </mail_account>
 
+    <!-- equivalent to config_example.xml tag -->
     <mega_sender>
         <!-- if not set, will use configuration file as defined by megatools
         <user></user>

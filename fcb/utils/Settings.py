@@ -83,7 +83,6 @@ class _PlainNode(object):
 
 
 class _Performance(_PlainNode):
-    threads = 1
     max_pending_for_processing = 10
 
     def __init__(self, root=None):
@@ -132,18 +131,6 @@ class _StoredFiles(_PlainNode):
 
     def __init__(self, root=None):
         self.load(root)
-
-
-class _CipherSettings(object):
-    performance = None
-
-    def __init__(self, root=None, default_performance=None):
-        self.performance = deepcopy(default_performance) if default_performance is not None else _Performance()
-        if root is not None:
-            for node in root:
-                tag = node.tag
-                if tag == "performance":
-                    self.performance.load(node)
 
 
 class _MailAccount(object):
@@ -324,7 +311,6 @@ class Settings(object):
     _default_limits = _Limits()
     exclude_paths = _ExcludePaths()
     stored_files = _StoredFiles()
-    cipher = _CipherSettings()
     mail_accounts = []
     sent_files_log = None
     dir_dest = None
@@ -360,8 +346,6 @@ class Settings(object):
                 self.to_image = _ToImage(node)
             elif tag == "sent_files_log":
                 _parse_field(self, node)
-            elif tag == "cipher":
-                cipher_node = node  # we keep it until we have processed other tags (we need performance loaded)
             elif tag == "mail_sender":
                 ms_node = node  # we keep it until we have processed other tags (we need limits loaded)
             elif tag == "dir_destination":
@@ -376,9 +360,6 @@ class Settings(object):
                 self.debugging = _Debugging(node)
             else:
                 log.warning("Tag '%s' not recognized. Will be ignored.", tag)
-
-        if cipher_node is not None:
-            self.cipher = _CipherSettings(cipher_node, self.performance)
 
         if ms_node is not None:
             for sub_node in ms_node.iter("account"):
