@@ -5,14 +5,7 @@ class NewInputPath(Event):
     """
     :argument path (str)
     """
-    pass
-
-
-class NewFileToProcess(Event):
-    """
-    :argument FileInfo
-    """
-    success = True
+    complete = True
 
 
 class NewContainerFile(Event):

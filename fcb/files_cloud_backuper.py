@@ -3,14 +3,15 @@
 import signal
 import sys
 
-from circuits import Component, Debugger
+from circuits import Component, Debugger, BaseComponent
+from circuits.core.handlers import handler
 
 from fcb.database.helpers import get_session
 from fcb.database.helpers import get_db_version
 from fcb.database.schema import FilesDestinations
 from fcb.framework import events, workers
 from fcb.framework.Marker import MarkerTask, Marks
-from fcb.framework.events import FlushPendings
+from fcb.framework.events import FlushPendings, NewInputPath
 from fcb.framework.workflow.Pipeline import Pipeline
 from fcb.framework.workflow.WorkRate import WorkRateController
 from fcb.processing.filesystem.Cleaner import Cleaner
@@ -102,18 +103,20 @@ class App(Component):
             .add(MarkerTask(mark=Marks.end_of_pipeline))
 
 
-class PipelineFlusher(Component):
-    remaining_inputs = 0
+class PipelineFlusher(BaseComponent):
+    _remaining_inputs = 0
 
-    def init(self, remaining_inputs):
-        self.remaining_inputs = remaining_inputs
+    @handler(NewInputPath.__name__)
+    def _on_new_input_path(self, *_):
+        self._remaining_inputs += 1
 
-    def NewInputPath_complete(self, *_):
+    @handler(NewInputPath.__name__ + "_complete")
+    def _on_input_path_processed(self, *_):
         self._notify_completed()
 
     def _notify_completed(self):
-        self.remaining_inputs -= 1
-        if self.remaining_inputs == 0:
+        self._remaining_inputs -= 1
+        if self._remaining_inputs == 0:
             self.fire(FlushPendings())
 
 
