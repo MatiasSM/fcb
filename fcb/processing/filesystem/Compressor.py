@@ -8,6 +8,7 @@ import threading
 from circuits import handler, Event
 
 from fcb.framework import events
+from fcb.framework.events import NewContainerFile, FileConsumed
 from fcb.framework.workers import hd_worker_pool
 from fcb.framework.workflow.HeavyPipelineTask import HeavyPipelineTask
 from fcb.framework.workflow.PipelineTask import PipelineTask
@@ -249,6 +250,8 @@ class _CompressorJob(HeavyPipelineTask):
             fragments_count = len(file_parts)
             fragment_num = 0
 
+            self.fire(FileConsumed(file_info))  # the file will be saved in the block
+
             for part_file_info in file_parts:
                 self._add_block_if_none()
                 if fragments_count > 1:  # is fragmented
@@ -292,7 +295,7 @@ class _CompressorJob(HeavyPipelineTask):
     def _finish_current_block(self, should_add_new_block=False):
         self._current_block.finish()
         self._block_fragmenter.account_block(self._current_block)
-        # self._new_output_cb(self._current_block)
+        self.fire(NewContainerFile(self._current_block))
         self.hand_on_to_next_task(self._current_block)
         self._current_block = None
         if should_add_new_block:

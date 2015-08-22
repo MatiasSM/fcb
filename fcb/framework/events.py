@@ -27,6 +27,20 @@ class FilteredFile(Event):
     """
 
 
+class FileConsumed(Event):
+    """
+    Represents a file info consumed (will be transformed or is buffered)
+    :argument FileInfo
+    """
+
+
+class PathConsumed(Event):
+    """
+    Represents a file path which didn't lead to a file processing
+    :argument FilePath
+    """
+
+
 class FlushPendings(Event):
     pass
 

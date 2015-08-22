@@ -4,6 +4,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from fcb.database.helpers import get_session
 from fcb.database.schema import UploadedFile
+from fcb.framework import events
 from fcb.framework.workflow.PipelineTask import PipelineTask
 
 
@@ -18,6 +19,7 @@ class AlreadyProcessedFilter(PipelineTask):
         """expects FileInfo"""
         if self._is_already_processed(file_info):
             self.log.debug("Content file already processed '%s'", str(file_info))
+            self.fire(events.FilteredFile(file_info))
         else:
             return file_info
         return None
