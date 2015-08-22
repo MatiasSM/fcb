@@ -1,3 +1,4 @@
+from fcb.framework import events
 from fcb.framework.workflow.PipelineTask import PipelineTask
 
 
@@ -13,6 +14,7 @@ class FileSizeFilter(PipelineTask):
         if self._exceeds_max_file_size(file_info):
             self.log.info("File '%s' has a size in bytes (%d) greater than the configured limit. Will be ignored.",
                           file_info.path, file_info.size)
+            self.fire(events.FilteredFile(file_info))
             return None
         else:
             return file_info

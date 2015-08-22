@@ -12,6 +12,7 @@ from fcb.framework import events, workers
 from fcb.framework.Marker import MarkerTask, Marks
 from fcb.framework.events import FlushPendings
 from fcb.framework.workflow.Pipeline import Pipeline
+from fcb.framework.workflow.WorkRate import WorkRateController
 from fcb.processing.filesystem.Cleaner import Cleaner
 from fcb.processing.filters.FileSizeFilter import FileSizeFilter
 from fcb.processing.models.Quota import Quota
@@ -68,7 +69,13 @@ class App(Component):
         rate_limiter = None
         if settings.limits.rate_limits is not None:
             rate_limiter = trickle.TrickleBwShaper(trickle.Settings(settings.limits.rate_limits))
-        files_reader = FileReader(path_filter_list=settings.exclude_paths.path_filter_list)
+
+        work_rate_controller = \
+            WorkRateController(max_pending_for_processing=settings.performance.max_pending_for_processing)
+        work_rate_controller.register(self)
+        files_reader = \
+            FileReader(path_filter_list=settings.exclude_paths.path_filter_list,
+                       work_rate_controller=work_rate_controller)
 
         self.pipeline \
             .add(files_reader, disable_on_shutdown=True) \

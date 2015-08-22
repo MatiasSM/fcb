@@ -21,6 +21,7 @@ class QuotaFilter(PipelineTask):
             self.log.debug("File would exceed quota. Won't process '%s'", str(file_info))
         else:
             return file_info
+        self.fire(events.FilteredFile(file_info))
 
     def _fits_in_quota(self, file_info):
         return self._quota.fits(file_info)
