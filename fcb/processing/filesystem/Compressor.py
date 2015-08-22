@@ -133,8 +133,16 @@ class _BlockFragmenter(object):
     def account_block(self, block):
         self._global_quota.account_used(block.processed_data_file_info)
         self._specific_quota.account_used(block.processed_data_file_info)
-        self.log.debug("Total (pending to be) uploaded today (global: %d, specific: %d) bytes",
-                       self._global_quota.used, self._specific_quota.used)
+        self.log.debug("Total (pending to be) uploaded today (global: %s, specific: %s)",
+                       self.sizeof_fmt(self._global_quota.used), self.sizeof_fmt(self._specific_quota.used))
+
+    @staticmethod
+    def sizeof_fmt(num, suffix='B'):
+        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+            if abs(num) < 1000.0:
+                return "%3.1f%s%s" % (num, unit, suffix)
+            num /= 1000.0
+        return "%.1f%s%s" % (num, 'Y', suffix)
 
     def has_space_left(self, block):
         return self._max_container_content_size_in_bytes == 0 \
