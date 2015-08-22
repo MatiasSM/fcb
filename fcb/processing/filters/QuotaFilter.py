@@ -1,3 +1,5 @@
+from circuits import handler
+
 from fcb.framework import events
 from fcb.framework.workflow.PipelineTask import PipelineTask
 

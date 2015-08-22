@@ -49,10 +49,6 @@ class TransmissionQuotaReached(SystemShouldStop):
     pass
 
 
-class NoMoreInput(SystemShouldStop):
-    pass
-
-
 class Mark(Event):
     """
     :argument Mark
