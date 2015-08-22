@@ -85,6 +85,11 @@ class Pipeline(Component):
             self.request_stop()
             event.stop()  # we will finish up
 
+    @handler(events.TransmissionQuotaReached.__name__)
+    def _on_quota_reached(self, *_):
+        self.fire(events.FlushPendings())  # make sure everything remaining has been sent
+        self.request_stop()
+
     def request_stop(self):
         for task in self._to_disable_on_shutdown:
             task.disable()

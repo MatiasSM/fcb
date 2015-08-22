@@ -6,7 +6,6 @@ class SendingError(Exception):
 
 
 class SenderTask(HeavyPipelineTask):
-
     # override from HeavyPipelineTask
     def do_heavy_work(self, block):
         """
@@ -44,7 +43,6 @@ class SenderTask(HeavyPipelineTask):
         :raise: SendingError if sending fails
         """
         raise NotImplementedError()
-
 
     def verification_data(self):
         """
