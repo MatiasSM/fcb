@@ -39,6 +39,7 @@ class AlreadyProcessedFilter(PipelineTask):
                     .query(UploadedFile) \
                     .filter(UploadedFile.sha1 == file_info.sha1) \
                     .order_by(UploadedFile.upload_date.desc()).one()
+                session.expunge_all()
 
             self.log.debug("Found uploaded file by hash: {}".format(uploaded_file))
             # get the uploaded date in local time (FIXME really ugly code)
