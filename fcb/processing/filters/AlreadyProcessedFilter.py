@@ -20,6 +20,7 @@ class AlreadyProcessedFilter(PipelineTask):
         if self._is_already_processed(file_info):
             self.log.debug("Content file already processed '%s'", str(file_info))
             self.fire(events.FilteredFile(file_info))
+            self.fire(events.FileInfoAlreadyProcessed(file_info))
         else:
             return file_info
         return None

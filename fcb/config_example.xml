@@ -9,6 +9,9 @@ Boolean like values admit 0 or (case insensitive) "false" as False values, any o
     <performance>
         <!-- amount of containers (backup units) that can be buffered -->
         <max_pending_for_processing>10</max_pending_for_processing>
+        <!-- Boolean like value which tells if input paths should be tracked/verified to see if they were
+             already uploaded (avoids overhead of checksuming the contents) -->
+        <filter_by_path>False</filter_by_path>
     </performance>
 
     <!-- global limits to apply (not by destination, see <default_limits>) -->

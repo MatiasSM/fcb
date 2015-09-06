@@ -22,6 +22,14 @@ class ProgramInformation(Base):
     modification_date = Column(DateTime, default=datetime.datetime.utcnow())
 
 
+class UploadedPaths(Base):
+    """
+    Information about paths known to be uploaded
+    """
+    __tablename__ = 'uploaded_paths'
+    path = Column(UnicodeText, primary_key=True)
+
+
 class UploadedFile(Base):
     """
     Information about files that have been uploaded
@@ -51,6 +59,7 @@ class Destination(Base):
             new_instance = cls(destination=destination)
             a_session.add(new_instance)
             return new_instance
+
 
 class FilesContainer(Base):
     """
@@ -107,14 +116,14 @@ class FilesDestinations(Base):
                                    date=datetime.datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)):
         one_more_day = date + datetime.timedelta(days=1)
 
-        size_sum = a_session\
-            .query(func.sum(FilesContainer.container_size))\
+        size_sum = a_session \
+            .query(func.sum(FilesContainer.container_size)) \
             .select_from(FilesDestinations) \
             .join(Destination) \
             .join(FilesContainer) \
             .filter(FilesContainer.upload_date >= date,
                     FilesContainer.upload_date < one_more_day,
-                    Destination.destination.in_(destinations) if destinations is not None and destinations else True)\
+                    Destination.destination.in_(destinations) if destinations is not None and destinations else True) \
             .scalar()
         return 0 if size_sum is None else size_sum
 
@@ -160,6 +169,7 @@ def main():
     session.add(ProgramInformation(name="db_version", value="3"))
 
     session.commit()
+
 
 if __name__ == '__main__':
     main()
