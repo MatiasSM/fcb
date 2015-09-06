@@ -3,6 +3,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from fcb.database.helpers import get_session
 from fcb.database.schema import FilesContainer, FilesDestinations, Destination, UploadedFile, FileFragment, \
     FilesInContainers
+from fcb.framework import events
 from fcb.framework.workflow.PipelineTask import PipelineTask
 
 
@@ -18,6 +19,7 @@ class SentLog(PipelineTask):
     def process_data(self, block):
         """expects Block from Compressor"""
         if hasattr(block, 'send_destinations') and block.send_destinations:
+            self.fire(events.FileProcessed(block))
             self._log_in_db(block)
             if self._sent_log_file:
                 self._log_in_sent_log(block)

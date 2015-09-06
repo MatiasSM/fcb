@@ -1,6 +1,18 @@
 from circuits.core.events import Event
 
 
+class FileInfoAlreadyProcessed(Event):
+    """
+    :argument FileInfo
+    """
+
+
+class FileProcessed(Event):
+    """
+    :argument Block
+    """
+
+
 class NewInputPath(Event):
     """
     :argument path (str)

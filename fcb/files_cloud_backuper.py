@@ -16,6 +16,7 @@ from fcb.framework.workflow.Pipeline import Pipeline
 from fcb.framework.workflow.WorkRate import WorkRateController
 from fcb.processing.filesystem.Cleaner import Cleaner
 from fcb.processing.filters.FileSizeFilter import FileSizeFilter
+from fcb.processing.filters.PathFilter import PathFilter
 from fcb.processing.models.Quota import Quota
 from fcb.processing.filters.QuotaFilter import QuotaFilter
 from fcb.processing.filters.AlreadyProcessedFilter import AlreadyProcessedFilter
@@ -77,6 +78,9 @@ class App(Component):
         files_reader = \
             FileReader(path_filter_list=settings.exclude_paths.path_filter_list,
                        work_rate_controller=work_rate_controller)
+
+        if settings.performance.filter_by_path:
+            PathFilter().register(self)
 
         self.pipeline \
             .add(files_reader, disable_on_shutdown=True) \

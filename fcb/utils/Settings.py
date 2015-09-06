@@ -84,6 +84,7 @@ class _PlainNode(object):
 
 class _Performance(_PlainNode):
     max_pending_for_processing = 10
+    filter_by_path = False
 
     def __init__(self, root=None):
         self.load(root)

@@ -3,6 +3,7 @@ Release 0.4.0:
     * Implements faster termination, only waits for pending sending (don't process new input)
     * Implements by resource threads (e.g. hard drive I/O and internet upload)
     * Implements/Improves performance.max_pending_for_processing support
+    * Implements performance.filter_by_path support
 
 Release 0.3.0:
     * Completely rewrite previous functionality to get more maintainable code
